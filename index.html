@@ -35,7 +35,7 @@ h2{margin:22px 0 4px;font-size:15px;border-bottom:1px solid var(--line);padding-
 .nm{font-family:ui-monospace,Consolas,monospace;word-break:break-all}
 .nm small{display:block;font-family:system-ui;color:var(--mut)}
 .tag{font:11px system-ui;padding:1px 5px;border-radius:3px;background:#444;color:#fff;margin-left:3px}
-.V2{background:#2f6a4f}body[data-ver=v1] .tag.V2{display:none}.ab{color:var(--acc);font-size:11px;margin-left:6px}.P1{background:var(--p1)}.P2{background:var(--p2)}.P3{background:var(--p3)}.N{background:var(--n)}.L{background:var(--lp)}
+.V2{background:#2f6a4f}.V4{background:#7a3f2a}body[data-ver=v1] .tag.V2,body[data-ver=v1] .tag.V4,body[data-ver=v2] .tag.V4,body[data-ver=v3] .tag.V4{display:none}.ab{color:var(--acc);font-size:11px;margin-left:6px}.P1{background:var(--p1)}.P2{background:var(--p2)}.P3{background:var(--p3)}.N{background:var(--n)}.L{background:var(--lp)}
 .vars{display:flex;flex-wrap:wrap;gap:8px}
 .v{display:flex;align-items:center;gap:6px;background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:3px 6px}
 .v button.play{min-width:46px}
@@ -58,7 +58,7 @@ footer{max-width:1100px;margin:0 auto;padding:0 20px 40px;color:var(--mut);font-
   <button class="go" id="bExport">Generuj i pobierz ZIP</button>
   <button id="bCancel" style="display:none">Anuluj</button>
   <label>Brzmienia
-    <select id="ver"><option value="v3" selected>Najnowsze (v3)</option><option value="v2">Poprzednie (v2)</option><option value="v1">Pierwsze (v1)</option></select></label>
+    <select id="ver"><option value="v4" selected>Realistyczne (v4)</option><option value="v3">v3</option><option value="v2">Poprzednie (v2)</option><option value="v1">Pierwsze (v1)</option></select></label>
   <label>Format
     <select id="fmt"><option value="ogg">OGG Vorbis</option><option value="wav">WAV 16-bit</option></select>
   </label>
@@ -1008,7 +1008,7 @@ function finalize(x, spec) {
 var REG = [];
 var V3_POST = { hit_mg: 8000, hit_pen: 8500, hit_spall: 8000, hit_rivets: 8000, hit_heat: 9500, gun_breech: 9000, surf_sand: 7000 };
 var V3_IDS = ['eng_petrol', 'eng_ww1', 'eng_start', 'eng_stall', 'cannon_s_fire', 'cannon_m_fire', 'cannon_l_fire', 'howitzer_fire', 'ed_place', 'ed_armor', 'ed_autofill', 'ed_hull', 'hit_nonpen', 'hit_pen', 'hit_ricochet', 'hit_mg', 'hit_rivets', 'hit_module', 'hit_spall', 'hit_heat', 'gun_breech', 'step_hit', 'gear_shift', 'hull_creak', 'surf_sand', 'hangar_arrive'];
-var RV = 'v3';   /* wersja renderu: v1 (pierwsza), v2 (poprzednia), v3 (najnowsza) - helpery sprawdzają ją, żeby v2 pozostało nietknięte */
+var RV = 'v3';   /* wersja renderu: v1 (pierwsza), v2, v3, v4 (realistyczna; dźwięki bez funkcji v4 renderują się jak v3) - helpery sprawdzają ją, żeby v2 pozostało nietknięte */
 function sfx(id, dur, o, fn) {
   var s = Object.assign({ id: id, dur: dur, var: 1, prio: 'P2', src: 'G', group: '', loop: false, stereo: false, subs: [], lufs: null, onset: 'hard', fn: fn }, o);
   REG.push(s); return s;
@@ -1031,13 +1031,13 @@ Ctx.prototype.j = function (x, pct) { pct = pct === undefined ? 0.05 : pct; retu
 Ctx.prototype.u = function (a, b) { return this.rng.uniform(a, b); };
 Ctx.prototype.ch = function (seq) { return this.rng.choice(seq); };
 
-function markV3() { REG.forEach(function (s) { s.v3 = V3_IDS.indexOf(s.id) >= 0; }); }
+function markV3() { REG.forEach(function (s) { s.v3 = V3_IDS.indexOf(s.id) >= 0; s.v4 = !!s.fn4; }); }
 /* renderuje jeden plik: zwraca {channels: [Float32Array...], rep} */
 function renderOne(task) {
-  var spec = REG.filter(function (s) { return s.id === task.id; })[0];
+  var spec = REG.filter(function (s) { return s.id === task.id; })[0], ver = task.ver || 'v4', fn;
+  if (ver === 'v4' && spec.fn4) { RV = 'v4'; fn = spec.fn4; if (spec.dur4) spec = Object.assign({}, spec, { dur: spec.dur4 }); }
+  else { RV = ver === 'v4' ? 'v3' : ver; fn = (RV === 'v1' || !spec.fn2) ? spec.fn : spec.fn2; }     /* v4 bez własnej funkcji = v3 */
   var ctx = new Ctx(spec, task.sub || null, task.v, task.seed || 0);
-  RV = task.ver || 'v3';
-  var fn = (RV === 'v1' || !spec.fn2) ? spec.fn : spec.fn2;
   var x = fn(ctx);
   if (RV === 'v3' && V3_POST[spec.id]) { var hz = V3_POST[spec.id]; x = isSt(x) ? x.map(function (c) { return lp(c, hz, 2, spec.loop); }) : lp(x, hz, 2, spec.loop); }    /* v3: łagodne tłumienie powietrzem */
   var r = finalize(x, spec), y = r.y;
@@ -3199,6 +3199,494 @@ sfxV3('ed_armor', function (c) {
   if (v === 0) return armorRing(n, r, 138, 12, 0.6, 0.00012).add(burst(n, r, 0.01, 300, 4000).mul(0.55)).add(thump(n, 130, 80, 0.015, 0.1).mul(0.7));
   return armorRing(n, r, r.uniform(95, 115), 9, 0.8, 0.0003).add(burst(n, r, 0.015, 150, 2500).mul(0.5)).add(thump(n, 105, 62, 0.02, 0.14, 1.3).mul(0.9));   /* gruba płyta */
 });
+
+/* ===== v4: realizm - silniki, wybuchy, trafienia =====
+ * Zasady: (1) żadnych "bębnowych" sinusów w basie - niskie pasma to szum i impuls ciśnienia; (2) metal to gęsty bank rezonatorów
+ * o stałej gęstości modów (jak płyta), a nie kilka strojonych trybów (dzwon); (3) każdy dźwięk plenerowy dostaje odbicie od ziemi,
+ * echa od otoczenia i rozproszony ogon, w którym wysokie tony gasną szybciej; (4) silnik to zapłony przez rury wydechowe
+ * z cylindrami o stałych indywidualnych różnicach, zmiennością cykl-do-cyklu, stukami spalania pobudzającymi blok i osprzętem. */
+var V4_IDS = [];
+function sfxV4(id, fn, dur) {
+  var s = REG.filter(function (x) { return x.id === id; })[0];
+  if (!s) throw new Error('v4: brak id ' + id);
+  s.fn4 = fn; if (dur) s.dur4 = dur;
+  if (V4_IDS.indexOf(id) < 0) V4_IDS.push(id);
+}
+function normPk(x) { return x.mul(1 / (maxAbs(x) + 1e-12)); }
+function normRms(x) { return x.mul(1 / rmsOf(x)); }
+/* bank rezonatorów dwubiegunowych: odpowiedź impulsowa każdego modu = g * sin * zanik t60; circ - zawijanie (pętle) */
+function modeBank(x, fs, t60s, gs, circ) {
+  var n = x.length, L = circ ? 3 * n : n, off = circ ? n : 0, out = new S(n), q, i;
+  for (q = 0; q < fs.length; q++) {
+    var f = fs[q]; if (!(f > 0 && f < 0.45 * SR)) continue;
+    var w = TAU * f / SR, rr = Math.exp(-6.907755 / (Math.max(t60s[q], 1e-4) * SR)), a1 = 2 * rr * Math.cos(w), a2 = -rr * rr, b = gs[q] * Math.sin(w), y1 = 0, y2 = 0;
+    for (i = 0; i < L; i++) {
+      var y = b * x[circ ? i % n : i] + a1 * y1 + a2 * y2; y2 = y1; y1 = y;
+      if (i >= off) out[i - off] += y;
+    }
+  }
+  return out;
+}
+/* mody płyty o stałej gęstości (rozkład równomierny w Hz), zanik i amplituda maleją z częstotliwością */
+function plateSet(rng, lo, hi, count, t60, o) {
+  o = o || {};
+  var fs = [], ts = [], gs = [], tilt = o.tilt === undefined ? 0.35 : o.tilt, dk = o.dk === undefined ? 0.5 : o.dk;
+  for (var k = 0; k < count; k++) {
+    var f = lo + (hi - lo) * Math.pow(rng.next(), o.skew || 1);
+    fs.push(f); ts.push(t60 * Math.pow(lo / f, dk) * rng.uniform(0.55, 1.15));
+    gs.push(Math.sqrt(-2 * Math.log(1 - 0.98 * rng.next())) * 0.6 * Math.pow(lo / f, tilt));          /* rozkład Rayleigha: naturalnie nierówne mody */
+  }
+  return { f: fs, t: ts, g: gs };
+}
+/* odpowiedź plenerowa: bezpośredni + odbicie od ziemi + echa (las, zabudowa) + rozproszony ogon ciemniejący w czasie */
+function outdoorIr(rng, o) {
+  var n = N(o.dur || 1.6), ir = new S(n), i;
+  ir[0] = 1;
+  if (o.ground !== 0) {
+    var gk = lp(fit(fromArr([1]), 96), o.groundLp || 2500, 2);
+    place(ir, gk, (o.groundMs === undefined ? 4 : o.groundMs) / 1000, o.ground === undefined ? 0.5 : o.ground);
+  }
+  (o.echoes || []).forEach(function (e) {
+    var d = N(0.05), b = lp(noise(d, rng, 60, null, {}).mul(dec(d, e[3] || 0.02, 0.003)), e[2], 2), en = 0;
+    for (i = 0; i < d; i++) en += b[i] * b[i];
+    place(ir, b.mul(1 / Math.sqrt(en + 1e-12)), e[0], e[1]);
+  });
+  if (o.tail) {
+    var pre = o.pre === undefined ? 0.03 : o.pre, rt = o.rt || 1.2;
+    var tl = mbBurst(n, rng, [[40, 350, rt, 1, pre, -1], [350, 1400, rt * 0.6, 0.7, pre], [1400, 6000, rt * 0.3, 0.35, pre]]), et = 0;
+    for (i = 0; i < n; i++) et += tl[i] * tl[i];
+    ir = ir.add(tl.mul(o.tail / Math.sqrt(et + 1e-12)));
+  }
+  return ir;
+}
+function outdoor(x, rng, o, circ) { return reverb(x, outdoorIr(rng, o), 1, 0, x.length, circ); }
+/* deszcz grud ziemi, kamieni i piachu po wybuchu (opóźniony - materiał musi spaść) */
+function dirtFall(rng, n, t0, peak, end, rate, gain, metal) {
+  var y = new S(n), eb = grainBank(rng, 14, 250, 2600, 0.025), sb = grainBank(rng, 10, 900, 5000, 0.008), mb = [], i;
+  for (i = 0; i < 6; i++) mb.push(metalClink(rng, { f0: 900, f1: 5500, count: 6, t60: 0.03, noise: 0.6, tonal: 0.6, gain: 0.8 }));
+  var fn = function (t) { return t < peak ? rate * Math.pow((t - t0) / (peak - t0), 1.5) : rate * Math.exp(-3 * (t - peak) / (end - peak)); };
+  poisson(rng, end - t0, null, fn, t0).forEach(function (t) {
+    var u = rng.next(), s = u < (metal || 0) ? mb[rng.int(0, 6)] : (u < 0.55 ? eb[rng.int(0, 14)] : sb[rng.int(0, 10)]);
+    place(y, s, t, Math.exp(rng.normal() * 0.6) * 0.35);
+  });
+  var m = Math.min(n, N(end + 0.3)), sh = noise(m, rng, 700, 6000, { slope: -0.5 }).mul(gen(m, function (t) { return Math.max(0, fn(Math.max(t, t0)) / rate) * (t > t0 ? 1 : 0); }));   /* drobny piach: szum */
+  return y.add(fit(sh, n).mul(0.12)).mul(gain);
+}
+
+/* ----- wybuch v4 ----- */
+/* o: size (0.3 granat ... 2.5 amunicja), drive, crack, debris (gęstość grud), metal (udział metalu w odłamkach), env (parametry pleneru), dry (bez pleneru) */
+function explosion4(r, n, o) {
+  var s = o.size || 1, cs = Math.cbrt(s), sq = Math.sqrt(s), tp = 0.0028 * cs + 0.0008;
+  var pw = normPk(friedlander(n, tp, 1.05));                                                                   /* fala ciśnienia (nadciśnienie + podciśnienie) */
+  var bt = 0.55 * sq + 0.15;
+  var body = noise(n, r, 25, null, { slope: -0.4 }).mul(gen(n, function (t) { return Math.min(t / 0.0008, 1) * (0.55 * Math.exp(-t / (0.025 * cs)) + 0.45 * Math.exp(-6.9 * t / bt)); }));
+  body = tvLp(body, function (t) { return 1100 + 12000 * Math.exp(-t / (0.035 * cs)); }, 2);                    /* ognisko: jasne na początku, szybko ciemnieje */
+  body = normPk(body.mul(lfo(n, r, 60, 0.55)));                                                               /* turbulencja: chropawość */
+  var whump = normPk(burst(n, r, 0.55 * sq + 0.12, 18, 90 / Math.pow(cs, 0.5), { attack: 0.004, order: 4 }));   /* niskie "łup" z szumu */
+  var rt = 2.2 * sq + 0.5;
+  var rumble = noise(n, r, 35, 550, { slope: -1, order: 3 }).mul(gen(n, function (t) { return Math.min(t / 0.1, 1) * Math.exp(-6.9 * t / rt); })).mul(lfo(n, r, 4, 0.8));
+  rumble = normPk(rumble);                                                                                    /* toczący się pomruk */
+  var lo = pw.mul(0.8).add(whump.mul(0.45)).add(body.mul(1.1)).add(rumble.mul(0.45));
+  lo = satA(lo, o.drive || 2.4, 0.15);                                                                        /* przester jak w nagraniu z bliska */
+  var c = N(0.01), crack = burst(c, r, 0.0011, 1200, 18000, { order: 2 });
+  place(lo, crack.mul((o.crack === undefined ? 0.6 : o.crack) * maxAbs(lo) / (maxAbs(crack) + 1e-12)), 0, 1);
+  place(lo, crack.mul(-0.4 * (o.crack === undefined ? 0.6 : o.crack) * maxAbs(lo) / (maxAbs(crack) + 1e-12)), 0.00035, 1);   /* N-fala */
+  var pk = maxAbs(lo);
+  if (o.debris !== 0) lo = lo.add(dirtFall(r, n, 0.12 + 0.08 * cs, 0.35 + 0.25 * cs, Math.min(n / SR - 0.05, 0.9 + 0.9 * cs), 40 * (o.debris || 1), 0.16 * pk, o.metal));
+  if (o.dry) return lo;
+  var env = Object.assign({ dur: Math.min(n / SR, 3), ground: 0.55, groundMs: 6, rt: 2.2 * sq + 0.6, tail: 0.8, pre: 0.05,
+    echoes: [[r.uniform(0.18, 0.3), 0.3, 900], [r.uniform(0.45, 0.7), 0.2, 600, 0.04], [r.uniform(0.9, 1.3), 0.12, 400, 0.06]] }, o.env || {});
+  return outdoor(lo, r, env);
+}
+
+/* ----- uderzenie w pancerz v4 ----- */
+/* o: lo, hi, count, t60 (mody płyty), tc (czas kontaktu: krótszy = jaśniej), plate, hullF, hullT, hull, bang, spark, drive, env */
+function impact4(r, n, o) {
+  var tc = o.tc || 0.00012, exc = burst(N(0.008), r, Math.max(tc * 10, 0.0006), 20, Math.min(0.42 * SR, 0.5 / tc), { attack: 0.00004 });
+  exc = fit(exc, n);
+  var ps = plateSet(r, o.lo, o.hi, o.count || 60, o.t60, { tilt: o.tilt === undefined ? 0.1 : o.tilt, dk: o.dk === undefined ? 0.25 : o.dk });
+  var plate = normPk(modeBank(exc, ps.f, ps.t, ps.g));
+  var hf = o.hullF || 90, hr = [1, 1.37, 1.81, 2.3, 2.93, 3.6], hullX = lp(exc, 600, 2);
+  var hull = normPk(modeBank(hullX, hr.map(function (k) { return hf * k * r.uniform(0.95, 1.05); }), hr.map(function (k) { return (o.hullT || 0.25) / Math.sqrt(k); }), hr.map(function (k) { return r.uniform(0.5, 1) / k; })));
+  var thud = normPk(burst(n, r, o.thudT || 0.06, 25, 220, { attack: 0.0015, order: 3 }));                       /* masa kadłuba: tępy udar */
+  var bang = normPk(hp(friedlander(n, o.tp || 0.0006, 1.2), 120, 2).add(burst(n, r, 0.006, 300, 16000, { attack: 0.00005 }).mul(0.6)));   /* huk: energia pocisku w powietrze */
+  var y = plate.mul(o.plate === undefined ? 1 : o.plate).add(hull.mul(0.45 * (o.hull === undefined ? 0.6 : o.hull))).add(thud.mul(0.5 * (o.thud === undefined ? 0.5 : o.thud))).add(bang.mul(o.bang === undefined ? 0.8 : o.bang));
+  y = satA(y, o.drive || 1.8, 0.04);
+  if (o.spark !== 0) {                                                                                         /* iskry i opiłki */
+    var gb = grainBank(r, 12, 3500, 14000, 0.003), sp = new S(n), sd = o.sparkDur || 0.12;
+    poisson(r, sd * 2.5, null, function (t) { return 260 * Math.exp(-t / sd); }, 0.001).forEach(function (t) { place(sp, gb[r.int(0, 12)], t, Math.exp(r.normal() * 0.5) * 0.2); });
+    y = y.add(sp.mul((o.spark || 1) * maxAbs(y) * 0.5 / (maxAbs(sp) + 1e-12)));
+  }
+  return y;
+}
+function hitEnv(r, o) {
+  return Object.assign({ dur: 1.2, ground: 0.45, groundMs: 5, rt: 0.9, tail: 0.3, pre: 0.02, echoes: [[r.uniform(0.12, 0.22), 0.1, 1400, 0.03], [r.uniform(0.35, 0.55), 0.06, 900, 0.04]] }, o || {});
+}
+
+/* ----- silnik v4 ----- */
+var ENG4 = {
+  /* V8 cross-plane (np. Ford GAA): nierówne grupy zapłonów w rzędach = "bulgotanie" */
+  petrol: { cyl: 8, bank: [0, 1, 0, 1, 1, 0, 1, 0], rpm: [620, 1550, 2600], pipeF: [[31, 34], [31, 34], [31, 34]], fb: [.32, .3, .28], damp: [.45, .35, .28],
+    pulseT: [.0034, .0026, .002], pulseLp: [1300, 2200, 3400], muff: [2200, 3200, 4500], chamber: [210, 260, 320],
+    knock: [.14, .16, .18], blockLo: 500, blockHi: 3800, blockT: .03, valve: [.12, .13, .14], intake: [.07, .12, .22], fan: [.03, .06, .12], gear: [0, .012, .03],
+    ccv: [.22, .1, .06], miss: [.02, 0, 0], tjit: [.05, .02, .01], wob: [.07, .03, .015], drive: [1.6, 1.8, 2.1], out: [8000, 10000, 12000], cylVar: .12 },
+  /* V12 diesel (np. W-2): twardy stuk spalania pobudza blok - "klekot" 1-4 kHz */
+  diesel: { cyl: 12, bank: [0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1], rpm: [520, 1150, 1800], pipeF: [[33, 36], [33, 36], [33, 36]], fb: [.3, .28, .26], damp: [.5, .4, .32],
+    pulseT: [.003, .0024, .0019], pulseLp: [1300, 2000, 2800], muff: [1800, 2800, 4200], chamber: [170, 210, 250],
+    knock: [.5, .55, .6], blockLo: 700, blockHi: 4200, blockT: .045, valve: [.08, .09, .1], intake: [.05, .1, .18], fan: [.04, .08, .14], gear: [0, .015, .035],
+    ccv: [.16, .08, .05], miss: [0, 0, 0], tjit: [.04, .018, .01], wob: [.06, .028, .014], drive: [1.8, 2, 2.3], out: [10000, 12000, 14000], cylVar: .1 },
+  /* rzędowa czwórka lekkiego pojazdu */
+  small: { cyl: 4, bank: [0, 0, 0, 0], rpm: [750, 2000, 3300], pipeF: [[61], [61], [61]], fb: [.32, .3, .28], damp: [.4, .32, .25],
+    pulseT: [.0026, .002, .0015], pulseLp: [1300, 2300, 3800], muff: [1800, 3200, 5200], chamber: [300, 380, 460],
+    knock: [.08, .1, .12], blockLo: 800, blockHi: 4500, blockT: .025, valve: [.08, .09, .11], intake: [.08, .14, .25], fan: [.02, .04, .07], gear: [0, .015, .03],
+    ccv: [.24, .11, .06], miss: [.03, 0, 0], tjit: [.05, .022, .011], wob: [.07, .03, .015], drive: [1.6, 1.8, 2], out: [6000, 8000, 10000], cylVar: .14, rattle: [.15, .1, .06] },
+  /* gwiazdowy 9-cylindrowy, chłodzony powietrzem: jeden kolektor, odsłonięte popychacze i dmuchawa */
+  radial: { cyl: 9, bank: [0, 0, 0, 0, 0, 0, 0, 0, 0], rpm: [600, 1500, 2300], pipeF: [[47], [47], [47]], fb: [.3, .28, .26], damp: [.5, .4, .32],
+    pulseT: [.0032, .0025, .002], pulseLp: [1000, 1800, 2800], muff: [1800, 3000, 4500], chamber: [240, 290, 340],
+    knock: [.1, .12, .14], blockLo: 600, blockHi: 4000, blockT: .03, valve: [.16, .18, .2], intake: [.06, .1, .16], fan: [.1, .2, .35], gear: [.01, .02, .04],
+    ccv: [.22, .11, .07], miss: [.03, 0, 0], tjit: [.05, .022, .011], wob: [.07, .03, .015], drive: [1.6, 1.8, 2], out: [6000, 8000, 10000], cylVar: .15, rattle: [.12, .1, .08] },
+  /* WW1: wolnoobrotowa szóstka o wielkiej pojemności, otwarty wydech, łańcuchy */
+  ww1: { cyl: 6, bank: [0, 0, 0, 0, 0, 0], rpm: [380, 800, 1200], pipeF: [[27], [27], [27]], fb: [.35, .32, .3], damp: [.55, .45, .38],
+    pulseT: [.0045, .0035, .0028], pulseLp: [600, 1000, 1500], muff: [1200, 1800, 2600], chamber: [140, 170, 200],
+    knock: [.12, .14, .16], blockLo: 400, blockHi: 2800, blockT: .05, valve: [.22, .24, .26], intake: [.05, .08, .12], fan: [0, 0, 0], gear: [.01, .02, .03],
+    ccv: [.27, .15, .1], miss: [.05, .01, 0], tjit: [.06, .035, .02], wob: [.08, .04, .02], drive: [1.5, 1.7, 1.9], out: [4500, 5500, 6500], cylVar: .18, rattle: [.35, .3, .25], chain: [.3, .35, .4] }
+};
+function eng4P(kind, lvl) {
+  var d = ENG4[kind], p = { kind: kind, lvl: lvl };
+  Object.keys(d).forEach(function (k) { p[k] = Array.isArray(d[k]) && d[k].length === 3 && k !== 'bank' && !(d.cyl === 3) ? d[k][lvl] : d[k]; });
+  p.nb = Math.max.apply(null, d.bank) + 1;
+  return p;
+}
+/* stałe cechy cylindrów danego silnika (te same na każdym poziomie obrotów): amplituda, przesunięcie w czasie, barwa impulsu */
+function cylTraits(kind, cyl, cv) {
+  var g = new RNG(crc32(utf8('cyl:' + kind)), 11), a = [], dt = [], col = [];
+  for (var k = 0; k < cyl; k++) { a.push(1 + cv * g.normal()); dt.push(0.012 * g.normal()); col.push(g.uniform(0.8, 1.25)); }
+  return { a: a, dt: dt, col: col };
+}
+/* zapłony pętli: pełne cykle silnika w długości pętli, wolne "pływanie" obrotów jako okresowe odkształcenie czasu */
+function fireGrid4(r, p, dur) {
+  var cyl = p.cyl, cycles = Math.max(1, Math.round(p.rpm / 120 * dur)), K = cycles * cyl, P = dur / K, tr = cylTraits(p.kind, cyl, p.cylVar);
+  var c1 = r.int(1, 3), c2 = r.int(3, 6), f1 = r.uniform(0, TAU), f2 = r.uniform(0, TAU), A = p.wob * dur / (TAU * 1.6);
+  var ev = { t: [], a: [], c: [], P: P }, weak = 0;
+  for (var k = 0; k < K; k++) {
+    var cy = k % cyl, tau = k * P + tr.dt[cy] * P + r.normal() * p.tjit * P;
+    var t = tau + A * (Math.sin(TAU * c1 * tau / dur + f1) / c1 + 0.5 * Math.sin(TAU * c2 * tau / dur + f2) / c2);
+    var a = tr.a[cy] * Math.max(0.15, 1 + p.ccv * r.normal());
+    if (weak > 0) { a *= 0.35; weak--; } else if (r.next() < p.miss) { a *= 0.15; weak = r.int(0, 2); }      /* słabe/nieudane zapłony na jałowym */
+    ev.t.push(((t % dur) + dur) % dur); ev.a.push(a); ev.c.push(cy);
+  }
+  ev.col = tr.col;
+  return ev;
+}
+/* rdzeń silnika: ev = {t, a, c, col, P}; n - długość; circ - pętla */
+function engineCore4(r, n, ev, p, circ) {
+  var m = circ ? n : n + N(0.3), i, k, b, nb = p.nb, cyl = p.cyl, dur = n / SR;
+  var idx = ev.t.map(function (t) { return Math.round(t * SR); });
+  /* impuls wydechu: szybkie narastanie, zanik, lekkie podciśnienie; każdy cylinder ma trochę inną barwę */
+  var kern = [];
+  for (k = 0; k < cyl; k++) {
+    var Lk = N(0.02), T = p.pulseT * ev.col[k];
+    var hk = gen(Lk, function (t) { return (1 - Math.exp(-t / 0.00025)) * (Math.exp(-t / T) - 0.35 * Math.exp(-t / (T * 2.6))); });
+    hk = hk.add(noise(Lk, r, 200, 6000).mul(dec(Lk, T * 2.5)).mul(0.12));                                       /* turbulencja wylotu */
+    kern.push(lp(hk, p.pulseLp * ev.col[k], 2));
+  }
+  var trains = [];
+  for (b = 0; b < nb; b++) trains.push(new S(m));
+  for (k = 0; k < cyl; k++) {
+    var ii = [], aa = [];
+    for (i = 0; i < idx.length; i++) if (ev.c[i] === k) { ii.push(idx[i]); aa.push(ev.a[i]); }
+    var tk = trainConv(m, ii, aa, kern[k], circ), bk = p.bank[k];
+    for (i = 0; i < m; i++) trains[bk][i] += tk[i];
+  }
+  /* rury: ćwierćfalowe (zamknięty zawór - otwarty wylot: nieparzyste rezonanse), każdy rząd inna długość, tłumik */
+  var exh = new S(m);
+  for (b = 0; b < nb; b++) {
+    var pf = p.pipeF[b] || p.pipeF[0], D = Math.max(2, Math.round(SR / (2 * pf)));
+    var yb = pipeComb(trains[b], D, -p.fb, p.damp, circ);
+    yb = lp(yb, p.muff, 2, circ);
+    yb = yb.add(res(yb, p.chamber * (1 + 0.07 * b), 2.2, circ).mul(0.6));
+    exh = exh.add(yb);
+  }
+  exh = exh.mul(1 / stdOf(exh));
+  exh = sat(exh.mul(1 / 3.2), p.drive); exh = exh.mul(1 / stdOf(exh));
+  var all = trains[0]; for (b = 1; b < nb; b++) all = all.add(trains[b]);
+  var envF = lp(all.map(Math.abs), 70, 1, circ), me = 0; for (i = 0; i < m; i++) me += envF[i]; me /= m;
+  var pulseEnv = new Float64Array(m); for (i = 0; i < m; i++) pulseEnv[i] = Math.min(2.2, envF[i] / (me + 1e-12));
+  /* stuk spalania przenoszony przez blok: każdy zapłon pobudza gęsty bank modów bloku */
+  var kexc = new S(m), kb = grainBank(r, 8, 400, 9000, 0.0015, 0.0001);
+  idx.forEach(function (x, q) { addAt(kexc, kb[r.int(0, 8)], x + Math.round(r.uniform(0.0005, 0.002) * SR), ev.a[q] * Math.exp(0.35 * r.normal()), circ); });
+  var bs = plateSet(new RNG(crc32(utf8('blk:' + p.kind)), 3), p.blockLo, p.blockHi, 40, p.blockT, { tilt: 0.2, dk: 0.4 });
+  var block = modeBank(kexc, bs.f, bs.t, bs.g, circ);
+  block = block.mul(1 / stdOf(block)).add(hp(kexc, 2500, 2, circ).mul(0.25 / stdOf(kexc)));
+  /* rozrząd: stuki zaworów (dwa zdarzenia na cylinder na cykl) */
+  var vb = grainBank(r, 10, 1500, 7000, 0.0025), vv = new S(m);
+  idx.forEach(function (x, q) {
+    for (var j = 0; j < 2; j++) addAt(vv, vb[r.int(0, 10)], x + Math.round((ev.P * cyl * (0.18 + 0.27 * j) + r.uniform(-0.002, 0.002)) * SR), r.uniform(0.5, 1), circ);
+  });
+  /* wlot powietrza: szum pulsujący z zapłonami */
+  var air = fit(noise(n, r, 120, 2200, { slope: -1 }), m);
+  for (i = 0; i < m; i++) air[i] *= 0.4 + 0.6 * pulseEnv[i];
+  var y = exh.add(block.mul(p.knock)).add(vv.mul(p.valve / (stdOf(vv) + 1e-12) * 0.25)).add(air.mul(p.intake));
+  /* luzy: grzechotanie osłon i łańcuchów wzbudzane drganiami */
+  if (p.rattle) {
+    var rb = grainBank(r, 10, 700, 4500, 0.006), rr2 = new S(m);
+    idx.forEach(function (x, q) { if (r.next() < 0.6) addAt(rr2, rb[r.int(0, 10)], x + Math.round(r.uniform(0.003, 0.03) * SR), ev.a[q] * r.uniform(0.2, 1), circ); });
+    y = y.add(rr2.mul(p.rattle / (stdOf(rr2) + 1e-12) * 0.3));
+  }
+  if (p.chain) {
+    var cb = [], ch = new S(m);
+    for (i = 0; i < 4; i++) cb.push(burst(N(0.06), r, 0.02, 250, 1600).add(metalClink(r, { f0: 500, f1: 2500, count: 5, t60: 0.025, gain: 0.5 }).slice(0, N(0.06))));
+    idx.forEach(function (x, q) { if (q % 2 === 0) addAt(ch, cb[r.int(0, 4)], x + Math.round(0.012 * SR), r.uniform(0.4, 1), circ); });
+    y = y.add(ch.mul(p.chain / (stdOf(ch) + 1e-12) * 0.3));
+  }
+  /* wentylator chłodnicy (szum z tonem łopatek) i wycie przekładni - okresowe w pętli */
+  var q4 = function (f) { return circ ? Math.max(1, Math.round(f * dur)) / dur : f; }, rps = p.rpm / 60;
+  if (p.fan > 0) {
+    var bpf = q4(rps * 1.3 * 11), fanN = fit(noise(n, r, 250, 5000, { slope: -1 }), m).mul(0.7);
+    var fm2 = q4(bpf * 2), gm2 = q4(1.5);
+    y = y.add(fanN.add(gen(m, function (t) { return 0.1 * Math.sin(TAU * bpf * t + 0.5 * Math.sin(TAU * gm2 * t)) + 0.04 * Math.sin(TAU * fm2 * t + 1); })).mul(p.fan));
+  }
+  if (p.gear > 0) {
+    var gw = q4(rps * 0.62 * 29), gm = q4(3);
+    y = y.add(gen(m, function (t) { return Math.sin(TAU * gw * t + 0.6 * Math.sin(TAU * gm * t)) + 0.4 * Math.sin(TAU * 2 * gw * t + 1.2 * Math.sin(TAU * gm * t)); }).mul(p.gear));
+  }
+  y = lp(y, p.out, 2, circ);
+  y = y.add(lp(y, 140, 2, circ).mul(0.12));                                                                    /* kadłub: dociążenie basu */
+  y = outdoor(y.slice(0, circ ? n : m), r, { dur: 0.9, ground: 0.5, groundMs: 3, rt: 0.7, tail: 0.18, pre: 0.01, echoes: [[0.09, 0.12, 1500]] }, circ);
+  return y.slice(0, n);
+}
+['petrol', 'diesel', 'small', 'radial', 'ww1'].forEach(function (kind) {
+  sfxV4('eng_' + kind, function (c) {
+    var p = eng4P(kind, c.lvl), ev = fireGrid4(c.rng, p, c.dur);
+    return engineCore4(c.rng, c.n, ev, p, true);
+  });
+});
+/* turbina gazowa: tony łopatek sprężarki i turbiny (dwa wały - dudnienie), szum strumienia, pomruk wlotu */
+sfxV4('eng_turbine', function (c) {
+  var n = c.n, r = c.rng, lvl = c.lvl, L = c.dur, q = function (f) { return Math.max(1, Math.round(f * L)) / L; }, i;
+  var spool = [0.55, 0.78, 1.0][lvl], tones = [];
+  [[5200, 1, 0.3], [5200 * 1.012, 0.7, 0.3], [2900, 0.5, 0.2], [8300, 0.35, 0.15], [1450, 0.25, 0.1]].forEach(function (d) { tones.push([q(d[0] * spool), d[1], d[2]]); });
+  var y = new S(n), fmR = q(0.5), fmR2 = q(1.25);
+  tones.forEach(function (tn, k) {
+    var ph0 = r.uniform(0, TAU), fdev = tn[0] * 0.003;
+    for (i = 0; i < n; i++) { var t = i / SR; y[i] += tn[1] * Math.sin(TAU * tn[0] * t + (fdev / fmR) * Math.sin(TAU * fmR * t + k) + 0.3 * Math.sin(TAU * fmR2 * t + ph0) + ph0); }
+  });
+  y = y.mul(lfo(n, r, 20, 0.12)).mul([0.25, 0.3, 0.35][lvl]);
+  var jet = noise(n, r, 150, [3500, 5000, 7000][lvl], { slope: -0.8 }).mul(lfo(n, r, 8, 0.2)).mul([0.5, 0.7, 0.9][lvl]);
+  jet = jet.add(res(jet, [700, 900, 1100][lvl], 1.2, true).mul(0.5));
+  var rum = noise(n, r, 25, 180, { slope: -1.5, order: 3 }).mul(lfo(n, r, 3, 0.3)).mul([0.5, 0.6, 0.7][lvl]);
+  var hiss = noise(n, r, 4000, 14000).mul([0.03, 0.05, 0.08][lvl]);
+  var out = y.add(jet).add(rum).add(hiss);
+  return outdoor(out, r, { dur: 0.9, ground: 0.5, groundMs: 3, rt: 0.7, tail: 0.15, pre: 0.01, echoes: [[0.09, 0.12, 1500]] }, true);
+});
+/* zdarzenia silnika z krzywej obrotów: rpmFn(t), pFire(t) - prawdopodobieństwo zapłonu, aFn(t) - siła */
+function eventsFromRpm(r, p, t0, t1, rpmFn, pFire, aFn) {
+  var tr = cylTraits(p.kind, p.cyl, p.cylVar), ev = { t: [], a: [], c: [], col: tr.col, P: 0 }, t = t0, k = 0;
+  while (t < t1) {
+    var rpm = Math.max(30, rpmFn(t)), P = 60 / (rpm * p.cyl / 2), cy = k % p.cyl;
+    if (r.next() < pFire(t)) { ev.t.push(t + tr.dt[cy] * P); ev.a.push(Math.max(0.05, aFn(t) * tr.a[cy] * (1 + p.ccv * r.normal()))); ev.c.push(cy); }
+    ev.P = P; t += P * (1 + p.tjit * r.normal()); k++;
+  }
+  return ev;
+}
+sfxV4('eng_start', function (c) {
+  var n = c.n, r = c.rng, p = eng4P('petrol', 0), y = new S(n), i, tCatch = 1.05;
+  p.fan = 0; p.gear = 0;
+  /* stycznik i zazębienie zębnika */
+  place(y, impact4(r, N(0.3), { lo: 600, hi: 6000, count: 30, t60: 0.05, tc: 0.0001, hull: 0.2, hullF: 180, thud: 0.4, bang: 0.2, spark: 0, drive: 1.3 }).mul(0.5), 0, 1);
+  /* rozrusznik: silnik elektryczny (ton + szczotki) zwalniany każdym sprężaniem */
+  var comp = [], tt = 0.12; while (tt < tCatch + 0.2) { comp.push(tt); tt += (1 / 7.5) * (1 + 0.06 * r.normal()); }
+  var spd = gen(n, function (t) { var v = Math.min(t / 0.12, 1); comp.forEach(function (tc) { var d = t - tc; if (d > -0.03 && d < 0.1) v *= 1 - 0.22 * Math.exp(-Math.pow(d / 0.035, 2)); }); return v; });
+  var gate = gen(n, function (t) { return Math.min(Math.max((tCatch + 0.28 - t) / 0.06, 0), 1); });
+  var fm = spd.mul(150), mot = additive(fm, [1, 0.5, 0.45, 0.3, 0.2, 0.15, 0.12, 0.08, 0.06]).mul(0.35);
+  var brush = noise(n, r, 1500, 7000).mul(spd).mul(0.08), mesh = bp(noise(n, r), 600, 2600, 2).mul(gen(n, function (t, k) { return 0.5 + 0.5 * Math.sin(TAU * 13 * fm[k] / 150 * t); })).mul(0.12);
+  y = y.add(mot.add(brush).add(mesh).mul(spd).mul(gate).mul(0.22));
+  /* sprężania: "ruh-ruh" - wydmuch przez wydech przy kręceniu */
+  var crank = { t: comp.slice(), a: comp.map(function () { return r.uniform(0.12, 0.2); }), c: comp.map(function (_, k) { return k % 8; }), col: cylTraits('petrol', 8, 0.12).col, P: 0.13 };
+  /* zaskoczenie: nieregularne zapłony, przegazowanie, opadanie do jałowego */
+  var rpmFn = function (t) { return interp(t, [tCatch, tCatch + 0.15, tCatch + 0.45, tCatch + 0.7, tCatch + 1.2, 3.2], [180, 600, 1250, 1150, 700, 640]); };
+  var ev = eventsFromRpm(r, p, tCatch, c.dur, rpmFn, function (t) { return Math.min(1, 0.35 + 1.3 * (t - tCatch)); }, function (t) { return interp(t, [tCatch, tCatch + 0.3, tCatch + 0.6, tCatch + 1.0], [0.6, 1.3, 1.0, 0.75]); });
+  ['t', 'a', 'c'].forEach(function (k) { ev[k] = crank[k].concat(ev[k]); });
+  var eng = engineCore4(r, n, ev, p, false);
+  y = y.add(eng.mul(maxAbs(mot) * 1.6 / (maxAbs(eng) + 1e-12)));
+  place(y, impact4(r, N(0.3), { lo: 400, hi: 4500, count: 25, t60: 0.06, tc: 0.00015, hull: 0.3, hullF: 120, thud: 0.4, bang: 0.1, spark: 0, drive: 1.3 }).mul(0.35 * maxAbs(y)), tCatch + 0.3, 1);   /* odskok zębnika */
+  return y;
+}, 3.2);
+sfxV4('eng_stall', function (c) {
+  var n = c.n, r = c.rng, p = eng4P('petrol', 0);
+  p.fan = 0; p.ccv = 0.3;
+  var rpmFn = function (t) { return Math.max(40, 620 * Math.pow(Math.max(0, 1 - t / 1.25), 0.8)); };
+  var ev = eventsFromRpm(r, p, 0, 1.3, rpmFn, function (t) { return 1 - 0.55 * t / 1.25; }, function (t) { return 1 - 0.5 * t / 1.25; });
+  ev.t.push(1.32, 1.52); ev.a.push(1.1, 0.7); ev.c.push(0, 3);                                                    /* ostatnie, mocne sprężania - silnik "odbija" */
+  var y = engineCore4(r, n, ev, p, false), pk = maxAbs(y);
+  place(y, burst(N(0.6), r, 0.35, 18, 70, { attack: 0.02, order: 3 }).mul(gen(N(0.6), function (t) { return Math.sin(TAU * 2.6 * t + 0.3); })).mul(0.5 * pk), 1.55, 1);   /* kołysanie na poduszkach */
+  place(y, impact4(r, N(0.3), { lo: 300, hi: 3500, count: 25, t60: 0.08, tc: 0.0002, hull: 0.5, hullF: 110, bang: 0.05, spark: 0, drive: 1.2 }).mul(0.22 * pk), 1.62, 1);
+  return y.mul(gen(n, function (t) { return Math.min(Math.max((1.95 - t) / 0.25, 0), 1); }));
+});
+
+/* ----- wybuchy i trafienia ----- */
+sfxV4('hit_he', function (c) {
+  var n = c.n, r = c.rng, size = c.v === 0 ? c.u(0.85, 1.0) : c.u(0.6, 0.75);
+  var y = explosion4(r, n, { size: size, metal: 0.25, dry: true });
+  var pk = maxAbs(y);
+  y = y.add(impact4(r, n, { lo: 130, hi: 4500, count: 50, t60: 0.35, tc: 0.0004, hull: 0.9, hullF: 85, hullT: 0.35, bang: 0, spark: 0.6, sparkDur: 0.08, drive: 1.4 }).mul(0.35 * pk));   /* kadłub dostaje cios */
+  var fr = new S(n);
+  for (var i = 0; i < 4; i++) { var m = N(r.uniform(0.15, 0.3)), f0 = r.uniform(1800, 3500); place(fr, tvBp(noise(m, r), function (t) { return f0 * Math.exp(-t / 0.15); }, 0.6).mul(dec(m, 0.2, 0.01)), r.uniform(0.02, 0.25), r.uniform(0.3, 0.7)); }   /* świst odłamków */
+  y = y.add(fr.mul(0.12 * pk / (maxAbs(fr) + 1e-12)));
+  return outdoor(y, r, { dur: 3.2, ground: 0.55, groundMs: 6, rt: 2.6, tail: 0.85, pre: 0.05, echoes: [[r.uniform(0.18, 0.3), 0.32, 900], [r.uniform(0.45, 0.7), 0.22, 600, 0.04], [r.uniform(0.9, 1.3), 0.12, 400, 0.06]] });
+}, 3.5);
+sfxV4('hit_ground', function (c) {
+  var n = c.n, r = c.rng;
+  /* pocisk (bez materiału wybuchowego) w ziemię: tępe "łup", wyrzut ziemi, opadające grudy */
+  var thud = normPk(burst(n, r, 0.18, 20, 160, { attack: 0.002, order: 4 })).add(normPk(friedlander(n, 0.0025, 1.2)).mul(0.6));
+  var spray = noise(n, r, 300, 6000, { slope: -0.6 }).mul(gen(n, function (t) { return Math.min(t / 0.015, 1) * Math.exp(-6.9 * t / 0.35); })).mul(lfo(n, r, 80, 0.6));
+  spray = tvLp(spray, function (t) { return 1200 + 6000 * Math.exp(-t / 0.08); }, 2);
+  var y = satA(thud.add(normPk(spray).mul(0.55)), 1.7, 0.1);
+  y = y.add(dirtFall(r, n, 0.08, 0.3, 1.1, 45, 0.25, 0));
+  return outdoor(y, r, { dur: 1.4, ground: 0.4, groundMs: 4, rt: 1.0, tail: 0.35, pre: 0.03, echoes: [[r.uniform(0.15, 0.25), 0.22, 900], [r.uniform(0.4, 0.6), 0.14, 600, 0.04]] });
+}, 1.4);
+sfxV4('cookoff', function (c) {
+  var n = c.n, r = c.rng, i;
+  /* detonacja amunicji: potężny wybuch, ryk kuli ognia/płonącego prochu, wtórne detonacje, trzaski łusek, spadające elementy */
+  var y = explosion4(r, n, { size: 2.3, drive: 2.6, crack: 0.5, metal: 0.4, debris: 0.8, dry: true }), pk = maxAbs(y);
+  var roar = noise(n, r, 80, 4000, { slope: -0.8 }).mul(lfo(n, r, 14, 0.6)).mul(lfo(n, r, 2, 0.4));
+  roar = roar.mul(gen(n, function (t) { return Math.min(t / 0.12, 1) * (t < 0.6 ? 1 : Math.exp(-(t - 0.6) / 1.1)); }));
+  roar = tvLp(roar, function (t) { return 900 + 3500 * Math.exp(-t / 0.8); }, 2);                                 /* płonący proch: "ryk" jak z dyszy */
+  y = y.add(roar.mul(0.3 * pk / (maxAbs(roar) + 1e-12)));
+  var ts = [0.35 + r.uniform(-0.05, 0.05)], t = ts[0];
+  while (t < c.dur - 1.2) { t += r.uniform(0.18, 0.7) * (1 + t * 0.4); ts.push(t); }
+  ts.forEach(function (tt, k) {                                                                                  /* wtórne detonacje */
+    var e = explosion4(r, N(1.5), { size: r.uniform(0.25, 0.7) * Math.pow(0.82, k), drive: 2.2, debris: 0, dry: true });
+    place(y, e, tt, pk * r.uniform(0.25, 0.55) * Math.pow(0.85, k) / (maxAbs(e) + 1e-12));
+  });
+  poisson(r, c.dur - 0.4, null, function (x) { return 22 * Math.exp(-(x - 0.2) / 1.4) + 2; }, 0.2).forEach(function (tt) {     /* pękające łuski/spłonki */
+    var m = N(0.08), s = burst(m, r, 0.012, 400, 9000, { attack: 0.0002 }).add(friedlander(m, 0.0004, 1.2).mul(0.5));
+    if (r.next() < 0.5) s = lp(s, r.uniform(1500, 4000), 2);
+    place(y, s, tt, pk * 0.12 * Math.exp(0.6 * r.normal()) / (maxAbs(s) + 1e-12));
+  });
+  for (i = 0; i < 6; i++) {                                                                                      /* spadające elementy: włazy, osłony */
+    var tm = r.uniform(0.7, c.dur - 0.6), im = impact4(r, N(0.6), { lo: 150, hi: 3500, count: 40, t60: 0.25, tc: 0.0004, hull: 0.4, hullF: r.uniform(90, 160), bang: 0.1, spark: 0, drive: 1.3 });
+    place(y, im, tm, pk * r.uniform(0.06, 0.16));
+  }
+  return outdoor(y, r, { dur: 3.5, ground: 0.55, groundMs: 7, rt: 3.0, tail: 0.85, pre: 0.06, echoes: [[r.uniform(0.2, 0.3), 0.32, 900], [r.uniform(0.5, 0.7), 0.22, 600, 0.04], [r.uniform(1.0, 1.4), 0.14, 400, 0.06]] });
+}, 5.0);
+sfxV4('hull_torn', function (c) {
+  var n = c.n, r = c.rng, y = explosion4(r, n, { size: 1.3, drive: 2.4, metal: 0.5, debris: 0.6, dry: true }), pk = maxAbs(y), m = N(1.2);
+  /* rozdzierana blacha: tarcie stick-slip pobudzające gęsty bank modów + szum rozrywania */
+  var ps = plateSet(r, 250, 5000, 45, 0.08, { tilt: 0.3 });
+  var exc = new S(m), tt = 0.0;
+  while (tt < 1.15) { var f = 30 + 90 * tt / 1.1 + 15 * r.normal(); addAt(exc, burst(N(0.004), r, 0.002, 300, 9000), Math.round(tt * SR), Math.min(tt / 0.08, 1) * Math.min((1.15 - tt) / 0.3, 1) * Math.exp(0.4 * r.normal()), false); tt += 1 / Math.max(f, 12); }
+  var tear = modeBank(exc, ps.f, ps.t, ps.g).add(tvBp(noise(m, r), function (t) { return interp(t, [0, 1.1], [500, 2600]); }, 1.6).mul(lfo(m, r, 45, 0.9)).mul(trap(m, 0.03, 0.75, 0.35)).mul(0.3));
+  place(y, tear.mul(0.4 * pk / (maxAbs(tear) + 1e-12)), 0.08, 1);
+  poisson(r, 1.2, null, function (t) { return 6 * Math.exp(-(t - 0.8) / 0.7); }, 0.8).forEach(function (t) {     /* spadające panele */
+    place(y, impact4(r, N(0.6), { lo: 160, hi: 4000, count: 40, t60: 0.22, tc: 0.0003, hull: 0.3, hullF: r.uniform(100, 180), bang: 0.1, spark: 0, drive: 1.3 }), t, pk * r.uniform(0.08, 0.2));
+  });
+  return outdoor(y, r, { dur: 2.8, ground: 0.55, groundMs: 6, rt: 2.4, tail: 0.75, pre: 0.05, echoes: [[r.uniform(0.18, 0.3), 0.3, 900], [r.uniform(0.45, 0.7), 0.2, 600, 0.04]] });
+}, 3.0);
+
+/* trafienie bez przebicia: huk + krótki, gęsty brzęk płyty + "bum" pustego kadłuba + iskry i rozprysk */
+sfxV4('hit_nonpen', function (c) {
+  var n = c.n, r = c.rng, thick = c.sub === 'thick', v = c.v;
+  var o = thick ? { lo: c.u(110, 150), hi: 5000, count: 80, t60: v === 0 ? 0.45 : 0.32, plate: 1.2, tc: 0.00022, hullF: c.u(70, 95), hullT: 0.35, hull: 0.8, thud: 0.6, bang: 0.9, tp: 0.0009, drive: 2.0 }
+    : { lo: c.u(280, 380), hi: 9000, count: 70, t60: v === 0 ? 0.45 : 0.3, dk: 0.15, plate: 1.4, tc: 0.00011, hullF: c.u(110, 140), hullT: 0.2, hull: 0.25, thud: 0.2, bang: 0.75, tp: 0.0005, drive: 1.8 };
+  var y = impact4(r, n, o), pk = maxAbs(y);
+  /* pocisk rozpada się / odbija: rozprysk odłamków o pancerz */
+  for (var k = 0, kk = r.int(3, 7); k < kk; k++) place(y, metalClink(r, { f0: 1200, f1: 7000, count: 6, t60: 0.02, noise: 0.7, tonal: 0.5, gain: 1 }), r.uniform(0.02, 0.25), pk * r.uniform(0.03, 0.09));
+  return outdoor(y, r, hitEnv(r, {}));
+}, 1.2);
+/* przebicie: huk, chrzęst ścinanego metalu, stłumiony podmuch we wnętrzu, odpryski grzechoczące w środku */
+sfxV4('hit_pen', function (c) {
+  var n = c.n, r = c.rng, thick = c.sub === 'thick', i;
+  var y = impact4(r, n, thick ? { lo: 120, hi: 5000, count: 60, t60: 0.18, tc: 0.0002, hullF: c.u(70, 95), hullT: 0.3, hull: 0.9, thud: 0.8, bang: 1.0, tp: 0.001, drive: 2.2 }
+    : { lo: 300, hi: 8500, count: 50, t60: 0.12, tc: 0.0001, hullF: c.u(100, 130), hullT: 0.22, hull: 0.6, thud: 0.5, bang: 0.85, tp: 0.0006, drive: 2.0 }), pk = maxAbs(y);
+  var m = N(thick ? 0.07 : 0.05), sh = noise(m, r, 700, 9000, { slope: -0.3 }).mul(lfo(m, r, 300, 0.9)).mul(gen(m, function (t) { return Math.min(t / 0.002, 1) * Math.exp(-6.9 * t / (m / SR)); }));
+  place(y, sh.mul(0.45 * pk / (maxAbs(sh) + 1e-12)), 0.002, 1);                                                 /* ścinanie */
+  var ins = new S(n), ib = normPk(burst(N(0.5), r, 0.25, 20, 300, { attack: 0.003, order: 3 })), hb = hullBox(r, N(0.5), ib);
+  place(ins, hb, 0.006, 1);                                                                                      /* podmuch we wnętrzu: słyszany przez kadłub */
+  var sp = new S(n);
+  poisson(r, 0.5, null, function (t) { return 10 + 140 * Math.exp(-t / 0.12); }, 0.01).forEach(function (t) {
+    place(sp, metalClink(r, { f0: 600, f1: 6000, count: 6, t60: thick ? 0.035 : 0.025, noise: 0.75, tonal: 0.5, gain: r.uniform(0.15, 0.7) }), t, 1);
+  });
+  sp = reverb(sp, smallRoom(r, 0.04), 1.2, 0.2, n);
+  sp = lp(sp, 3500, 2);                                                                                          /* wewnątrz: tłumione przez pancerz */
+  y = y.add(ins.mul(0.6 * pk / (maxAbs(ins) + 1e-12))).add(sp.mul(0.3 * pk / (maxAbs(sp) + 1e-12)));
+  return outdoor(y, r, hitEnv(r, {}));
+}, 1.2);
+/* wnętrze kadłuba jako zamknięta, metalowa skrzynia: rezonanse 60-400 Hz */
+function hullBox(r, n, x) {
+  var fs = [], ts = [], gs = [];
+  for (var k = 0; k < 14; k++) { fs.push(r.uniform(55, 420)); ts.push(r.uniform(0.08, 0.25)); gs.push(r.uniform(0.3, 1)); }
+  var y = modeBank(fit(x, n), fs, ts, gs);
+  return y.mul(maxAbs(x) / (maxAbs(y) + 1e-12));                                                               /* poziom jak wejście */
+}
+sfxV4('hit_ricochet', function (c) {
+  var n = c.n, r = c.rng, v = c.v, y;
+  var thin = { lo: c.u(350, 500), hi: 9000, count: 55, t60: 0.18, tc: 0.0001, hullF: c.u(100, 140), hullT: 0.15, hull: 0.3, thud: 0.25, bang: 0.7, tp: 0.0005, drive: 1.7, spark: 1.2, sparkDur: 0.06 };
+  y = impact4(r, n, v === 2 ? Object.assign({}, thin, { bang: 0.3, t60: 0.1, hull: 0.15, spark: 1.6, sparkDur: 0.15 }) : thin);
+  var pk = maxAbs(y);
+  /* odlatujący, koziołkujący pocisk: szum powietrza modulowany obrotem, ton opadający (oddalanie) */
+  function flyAway(t0, dur, fHi, fLo, gain) {
+    var m = N(dur), tum = r.uniform(25, 60), pt = r.uniform(0.04, 0.09), fc = function (t) { return fLo + (fHi - fLo) / (1 + Math.exp((t - pt) / 0.08)); };
+    var am = gen(m, function (t) { return 0.55 + 0.45 * Math.pow(Math.abs(Math.sin(Math.PI * tum * t)), 3); });
+    var ns = tvBp(noise(m, r), fc, 0.9).mul(am), tn = sineSweep(gen(m, fc)).add(sineSweep(gen(m, function (t) { return fc(t) * 2.03; })).mul(0.25)).mul(am).mul(0.18);
+    var e = gen(m, function (t) { return Math.min(t / 0.01, 1) * Math.exp(-t / (dur * 0.25)); });
+    var s = ns.add(tn).mul(e);
+    place(y, s.mul(gain * pk / (maxAbs(s) + 1e-12)), t0, 1);
+  }
+  if (v === 0) flyAway(0.004, 0.9, c.u(2600, 3400), c.u(900, 1300), 0.55);
+  else if (v === 1) {
+    flyAway(0.004, 0.3, 2800, 1600, 0.45);
+    var t2 = c.u(0.09, 0.13), y2 = impact4(r, N(0.6), Object.assign({}, thin, { lo: c.u(400, 600), bang: 0.4 }));
+    place(y, y2.mul(0.6 * pk / (maxAbs(y2) + 1e-12)), t2, 1);
+    flyAway(t2 + 0.004, 0.7, 2300, 900, 0.4);
+  } else flyAway(0.01, 0.9, c.u(3200, 3800), c.u(1800, 2200), 0.35);
+  return outdoor(y, r, hitEnv(r, { tail: 0.25 }));
+}, 1.2);
+sfxV4('hit_mg', function (c) {
+  var n = c.n, r = c.rng, v = c.v;
+  /* pocisk karabinowy o pancerz: ostry "pak" (płaszcz rozpryskuje się) + krótki brzęk; czasem rykoszet */
+  var y = impact4(r, n, { lo: c.u(600, 900), hi: 12000, count: 40, t60: [0.06, 0.1, 0.05, 0.08][v], tc: 0.00005, hullF: 160, hullT: 0.08, hull: 0.12, thud: 0.1, bang: 1.0, tp: 0.00025, drive: 1.6, spark: 0.8, sparkDur: 0.03 });
+  var pk = maxAbs(y), m = N(0.03);
+  place(y, burst(m, r, 0.008, 2000, 12000).mul(0.4 * pk), 0.0005, 1);                                           /* rozprysk płaszcza */
+  if (v === 1 || v === 3) {
+    var m2 = N(0.25), f0 = c.u(3800, 4800), f1 = c.u(1500, 2100);
+    var wh = tvBp(noise(m2, r), function (t) { return f1 + (f0 - f1) * Math.exp(-t / 0.06); }, 0.5).add(sineSweep(curve(m2, [[0, f0], [0.25, f1]])).mul(0.3)).mul(dec(m2, 0.2, 0.004));
+    place(y, wh.mul((v === 1 ? 0.35 : 0.2) * pk / (maxAbs(wh) + 1e-12)), 0.01, 1);
+  }
+  if (v === 2) place(y, impact4(r, N(0.15), { lo: c.u(700, 1000), hi: 12000, count: 30, t60: 0.05, tc: 0.00005, hull: 0.1, thud: 0.1, bang: 0.9, tp: 0.00025, drive: 1.5, spark: 0.5, sparkDur: 0.02 }).mul(0.7 * pk), c.u(0.045, 0.07), 1);
+  return outdoor(y, r, hitEnv(r, { dur: 0.25, rt: 0.3, tail: 0.18, echoes: [] }));
+});
+/* pocisk kumulacyjny: wybuch ładunku na pancerzu, strumień przebijający (syk), odpryski */
+sfxV4('hit_heat', function (c) {
+  var n = c.n, r = c.rng, v = c.v;
+  var y = explosion4(r, n, { size: v === 0 ? 0.32 : 0.25, drive: 2.4, crack: 1.0, debris: 0, dry: true }), pk = maxAbs(y);
+  y = y.add(impact4(r, n, { lo: 140, hi: 6000, count: 50, t60: 0.25, tc: 0.00015, hullF: 85, hullT: 0.3, hull: 0.8, thud: 0.5, bang: 0, spark: 1.5, sparkDur: 0.1, drive: 1.5 }).mul(0.45 * pk));
+  var jd = v === 0 ? 0.35 : 0.2, m = N(jd), jet = tvBp(noise(m, r), function (t) { return interp(t, [0, jd], [9000, 2800]); }, 1.6).mul(dec(m, jd * 0.9, 0.003));
+  place(y, jet.mul(0.6 * pk / (maxAbs(jet) + 1e-12)), 0.004, 1);
+  var sp = new S(n);
+  poisson(r, 0.4, null, function (t) { return 10 + 120 * Math.exp(-t / 0.12); }, 0.02).forEach(function (t) { place(sp, metalClink(r, { f0: 800, f1: 6000, count: 5, t60: 0.02, noise: 0.8, tonal: 0.4, gain: r.uniform(0.2, 0.8) }), t, 1); });
+  y = y.add(lp(reverb(sp, smallRoom(r, 0.04), 1.2, 0.2, n), 4000, 2).mul(0.15 * pk / (maxAbs(sp) + 1e-12)));
+  return outdoor(y, r, hitEnv(r, { dur: 1.4, rt: 1.1, tail: 0.45 }));
+}, 1.4);
+sfxV4('hit_spall', function (c) {
+  var n = c.n, r = c.rng, sp = new S(n);
+  /* odpryski wewnątrz: rój ostrych brzęków w ciasnym, metalowym wnętrzu */
+  poisson(r, 0.7, null, function (t) { return 20 + 200 * Math.exp(-t / 0.12); }, 0).concat([0]).forEach(function (t) {
+    place(sp, metalClink(r, { f0: 700, f1: 7000, count: 7, t60: r.uniform(0.015, 0.05), noise: 0.75, tonal: 0.55, gain: Math.exp(0.6 * r.normal()) * 0.4 }), t, 1);
+  });
+  var y = reverb(sp, smallRoom(r, 0.06), 1.0, 0.5, n);
+  y = y.add(hullBox(r, n, sp.mul(0.5)).mul(0.6));
+  return y.add(normPk(burst(n, r, 0.06, 30, 250, { attack: 0.002, order: 3 })).mul(0.4 * maxAbs(y)));
+});
+sfxV4('hit_module', function (c) {
+  var n = c.n, r = c.rng;
+  /* trafienie w moduł (silnik, przekładnia): tępy, ciężki udar w żeliwo, pękające elementy, grzechot */
+  var y = impact4(r, n, { lo: 180, hi: 4000, count: 50, t60: 0.12, tc: 0.0004, hullF: 75, hullT: 0.25, hull: 0.9, thud: 0.9, bang: 0.5, tp: 0.0012, drive: 2.0, spark: 0.4 }), pk = maxAbs(y);
+  var sp = new S(n);
+  for (var i = 0, k = r.int(5, 10); i < k; i++) place(sp, metalClink(r, { f0: 500, f1: 4000, count: 6, t60: 0.04, noise: 0.7, gain: r.uniform(0.2, 0.7) }), r.uniform(0.05, 0.5), 1);
+  y = y.add(hullBox(r, n, sp).mul(0.25 * pk / (maxAbs(sp) + 1e-12))).add(lp(sp, 4000, 2).mul(0.15 * pk / (maxAbs(sp) + 1e-12)));
+  return outdoor(y, r, hitEnv(r, { tail: 0.2 }));
+});
 </script>
 <script>
 (function () {
@@ -3220,8 +3708,8 @@ sfxV3('ed_armor', function (c) {
   rows.forEach(function (r) { if (groups.indexOf(r.spec.group) < 0) groups.push(r.spec.group); });
   groups.forEach(function (g) { var o = document.createElement('option'); o.value = g; o.textContent = g; $('#grp').appendChild(o); });
 
-  var S = { seed: 0, snr: 52, fmt: 'ogg', plain: false, dir: 'assets/sfx', ver: 'v3' };
-  document.body.dataset.ver = 'v3';
+  var S = { seed: 0, snr: 52, fmt: 'ogg', plain: false, dir: 'assets/sfx', ver: 'v4' };
+  document.body.dataset.ver = 'v4';
   function seedOf(r) { return r.seed === null ? S.seed : r.seed; }
   function stemOf(r, v) { return E.specStem(r.spec, r.sub, v, S.plain); }
 
@@ -3308,10 +3796,9 @@ sfxV3('ed_armor', function (c) {
     return submit(task, encode, S.snr, o.front).then(function (m) {
       var res = hit || { rep: m.rep, peaks: peaksOf(m.channels), name: stemOf(r, v) + '.' + S.fmt };
       if (!res.bytes) res.bytes = S.fmt === 'ogg' ? m.ogg : wavBytes(m.channels);
-      if (o.keepAudio) res.channels = m.channels;
-      if (res.bytes || res.channels) results[key] = res.bytes ? res : hit;
-      if (o.keepAudio && !res.bytes) { /* odsłuch bez kodowania */ res.bytes = null; }
-      return res;
+      if (res.bytes) results[key] = res;
+      /* kanały do odsłuchu tylko w kopii - nie trzymamy surowego audio w pamięci podręcznej plików */
+      return o.keepAudio ? Object.assign({}, res, { channels: m.channels }) : res;
     });
   }
 
@@ -3324,7 +3811,8 @@ sfxV3('ed_armor', function (c) {
     if (s.src === 'N') tags += '<span class="tag N" title="W specyfikacji lepsze nagranie — tu szkic proceduralny">szkic</span>';
     if (s.loop) tags += '<span class="tag L">pętla</span>';
     if (s.fn2) tags += '<span class="tag V2" title="Ten dźwięk ma ulepszoną wersję">' + (s.v3 ? 'v3' : 'v2') + '</span>';
-    el.innerHTML = '<div class="nm">' + r.key + tags + '<small>' + s.dur + ' s · ' + (s.stereo ? 'stereo' : 'mono') + ' · ' + s.var + ' war.</small></div><div class="vars"></div><div class="act"></div>';
+    if (s.v4) tags += '<span class="tag V4" title="Realistyczna wersja v4">v4</span>';
+    el.innerHTML = '<div class="nm">' + r.key + tags + '<small>' + s.dur + ' s' + (s.dur4 ? ' (v4: ' + s.dur4 + ' s)' : '') + ' · ' + (s.stereo ? 'stereo' : 'mono') + ' · ' + s.var + ' war.</small></div><div class="vars"></div><div class="act"></div>';
     var vars = el.querySelector('.vars');
     for (var v = 0; v < s.var; v++) {
       (function (v) {
@@ -3339,13 +3827,14 @@ sfxV3('ed_armor', function (c) {
     dice.onclick = function () { r.seed = Math.floor(Math.random() * 1e6); r.vars.forEach(function (x, i) { drawEmpty(x); }); playVar(r, 0); };
     var dl = document.createElement('button'); dl.textContent = '⭳'; dl.title = 'Pobierz pliki tego dźwięku';
     dl.onclick = function () { downloadRow(r, dl); };
-    if (s.fn2) {
-      var ab = document.createElement('button'); ab.textContent = 'A/B'; ab.title = s.v3 ? 'Odtwórz po kolei poprzednią (v2, A) i najnowszą (v3, B) wersję' : 'Odtwórz po kolei v1 (A) i v2 (B)';
+    if (s.fn2 || s.v4) {
+      var ab = document.createElement('button'); ab.textContent = 'A/B'; ab.title = 'Odtwórz po kolei poprzednią (A) i nowszą (B) wersję: ' + abPair(s).join(' → ');
       ab.onclick = function () { abPlay(r, ab); }; act.appendChild(ab);
     }
     act.appendChild(dice); act.appendChild(dl);
     list.appendChild(el);
   });
+  function abPair(s) { return s.v4 ? ['v3', 'v4'] : s.v3 ? ['v2', 'v3'] : ['v1', 'v2']; }
   function drawEmpty(x) { x.st.textContent = ''; var g = x.cv.getContext('2d'); g.clearRect(0, 0, x.cv.width, x.cv.height); }
   function drawWave(x, peaks) {
     var g = x.cv.getContext('2d'), w = x.cv.width, h = x.cv.height, acc = getComputedStyle(document.body).getPropertyValue('--acc') || '#c9a24a';
@@ -3359,8 +3848,8 @@ sfxV3('ed_armor', function (c) {
   }
 
   /* ---------- odsłuch ---------- */
-  var actx = null, curSrc = null, curBtn = null;
-  function stopAudio() { if (curSrc) { try { curSrc.stop(); } catch (e) { } curSrc = null; } if (curBtn) { curBtn.classList.remove('on'); curBtn.textContent = curBtn.dataset.lbl; curBtn = null; } }
+  var actx = null, curSrc = null, curBtn = null, playTok = 0;
+  function stopAudio() { playTok++; if (curSrc) { try { curSrc.stop(); } catch (e) { } curSrc = null; } if (curBtn) { curBtn.classList.remove('on'); curBtn.textContent = curBtn.dataset.lbl; curBtn = null; } }
   $('#bStop').onclick = stopAudio;
   function playVar(r, v) {
     var x = r.vars[v], btn = x.btn;
@@ -3369,6 +3858,7 @@ sfxV3('ed_armor', function (c) {
     if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)();
     if (actx.state === 'suspended') actx.resume();
     btn.dataset.lbl = '▶ ' + (v + 1); btn.innerHTML = '<span class="spin"></span>';
+    var tok = playTok;
     var key = rkey(r, v) + '|aud';
     var cached = audioLRU.filter(function (a) { return a.key === key; })[0], p;
     if (cached) p = Promise.resolve(cached);
@@ -3377,6 +3867,7 @@ sfxV3('ed_armor', function (c) {
     });
     p.then(function (a) {
       drawWave(x, a.res.peaks); showStat(x, a.res);
+      if (tok !== playTok) { btn.textContent = btn.dataset.lbl; return; }          /* w międzyczasie kliknięto Stop lub inny dźwięk */
       var b = actx.createBuffer(a.chs.length, a.chs[0].length, SR);
       a.chs.forEach(function (c, i) { b.copyToChannel(c, i); });
       var src = actx.createBufferSource(), g = actx.createGain(); src.buffer = b; src.loop = r.spec.loop; g.gain.value = 0.9;
@@ -3398,8 +3889,9 @@ sfxV3('ed_armor', function (c) {
     if (actx.state === 'suspended') actx.resume();
     var lab = r.el.querySelector('.nm'), tag = lab.querySelector('.ab') || lab.appendChild(Object.assign(document.createElement('span'), { className: 'ab' }));
     tag.textContent = 'renderuję…';
-    var pair = r.spec.v3 ? ['v2', 'v3'] : ['v1', 'v2'];
+    var pair = abPair(r.spec), tok = playTok;
     Promise.all([getAud(r, 0, pair[0]), getAud(r, 0, pair[1])]).then(function (as) {
+      if (tok !== playTok) { tag.textContent = ''; return; }
       var i = 0, names = ['A = ' + pair[0] + ' (poprzednia)', 'B = ' + pair[1] + ' (nowa)'], stopped = false;
       function mk(a) { var b = actx.createBuffer(a.chs.length, a.chs[0].length, SR); a.chs.forEach(function (c, k) { b.copyToChannel(c, k); }); return b; }
       function next() {
@@ -3487,7 +3979,7 @@ sfxV3('ed_armor', function (c) {
         jobs.forEach(function (j) { files.push({ name: dir + j.res.name, data: j.res.bytes }); (byKey[j.r.key] = byKey[j.r.key] || []).push(j); });
         Object.keys(byKey).forEach(function (k) {
           var js = byKey[k], s = js[0].r.spec;
-          man.push({ id: k, version: S.ver, base: s.id, sub: js[0].r.sub, group: s.group, prio: s.prio, source: s.src, placeholder: s.src === 'N', loop: s.loop, stereo: s.stereo, duration: s.dur, variants: js.length, files: js.map(function (j) { return j.res.name; }), lufs: js.map(function (j) { return j.res.rep.lufs; }), peak_db: js.map(function (j) { return j.res.rep.peak_db; }) });
+          man.push({ id: k, version: S.ver, base: s.id, sub: js[0].r.sub, group: s.group, prio: s.prio, source: s.src, placeholder: s.src === 'N', loop: s.loop, stereo: s.stereo, duration: (S.ver === 'v4' && s.dur4) || s.dur, variants: js.length, files: js.map(function (j) { return j.res.name; }), lufs: js.map(function (j) { return j.res.rep.lufs; }), peak_db: js.map(function (j) { return j.res.rep.peak_db; }) });
         });
         files.push({ name: dir + 'sfx_manifest.json', data: E.utf8(JSON.stringify(man, null, 1)) });
         var total = 0; jobs.forEach(function (j) { total += j.res.bytes.length; });
