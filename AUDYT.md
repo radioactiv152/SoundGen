@@ -109,3 +109,32 @@ node tools/render.js check v4      # render wszystkiego: błędy, NaN, LUFS, szc
 Dźwięki strojono na podstawie analizy widm i porównania z nagraniami referencyjnymi, nie odsłuchu.
 Ostateczną ocenę trzeba zrobić uchem (przycisk A/B: v3 → v4). Parametry są zebrane w `ENG4` oraz w wywołaniach
 `impact4`/`explosion4`, więc łatwo je podkręcić.
+
+## Runda 3: strzały, obrót wieży, trafienia
+
+Diagnoza (pomiar energii w pasmach, porównanie z salwami i ostrzałem z płyt WWII):
+- **Strzały v3** (`mg_shot` … `howitzer_fire`): widmo zdominowane przez < 100 Hz. Karabin maszynowy brzmiał jak
+  stopa perkusji, a działa miały środek −30 dB i urywały się w ciszę po 0,4–0,5 s.
+- **Ogon pleneru v4** (wspólny dla wszystkich dźwięków v4) był na hertz ~10 dB ciemniejszy w basie
+  (szum różowy plus najdłuższy zanik basu) i dokładał +12 dB w 20–100 Hz każdemu dźwiękowi z otoczeniem.
+  Poprawione: równa gęstość widma, góra nadal gaśnie szybciej. To rozjaśniło też wybuchy i trafienia.
+- **Obrót wieży v3**: praktycznie szum z maksimum 500 Hz, bez silnika, przekładni i wieńca.
+
+Nowe w v4:
+- `gunshot4` (wszystkie strzały): podmuch wylotowy (przesterowany szum 150 Hz – 8 kHz, ciemniejący,
+  chropawy), trzask N-fali pocisku, impuls ciśnienia i „bum” tylko jako dodatek, mechanika
+  (zamek kb: `boltClack`; odrzut działa, powrót lufy i kołysanie pojazdu: `recoilMech`), plener.
+  `recoilless_fire` ma ryk gazów do tyłu, `atgm_launch` oddalający się silnik rakiety.
+- `shot_tail` (stereo): rozproszony, toczący się pogłos z 6 wyraźnymi, rozmytymi echami rozłożonymi w panoramie.
+- `turret_traverse`: silnik z harmonicznymi i wyciem, chropawe zazębienie wieńca w rytmie zębów, pomruk łożyska,
+  skrzypienie, zabarwienie kadłubem. Pętla bez szwu.
+- Trafienia: nowe `hit_mg` (jasny „spak” blachy, rozprysk, warianty z rykoszetem i podwójnym trafieniem),
+  `hit_rivets`, `hit_crew`, `shell_flyby` (szum z Dopplerem i trzaskiem fali uderzeniowej zamiast gwizdka).
+
+Bilans pasm (dB względem 300–1000 Hz, 40–100 / 100–300 / 1–3k / 3–5k):
+
+| | 40–100 | 100–300 | 1–3k | 3–5k |
+|---|---|---|---|---|
+| salwa z nagrania | −5…−2 | 0…+1,5 | −3…+3,5 | −10…−3 |
+| `cannon_m_fire` v4 | +0,4 | +2,5 | −0,6 | −2,6 |
+| `cannon_l_fire` v4 | +0,2 | −1,5 | +0,3 | −2,6 |
