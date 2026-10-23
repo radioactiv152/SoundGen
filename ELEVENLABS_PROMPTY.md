@@ -1,4 +1,4 @@
-# Prompty ElevenLabs (Sound Effects): wystrzały, trafienia, podwozie i teren, ambienty
+# Prompty ElevenLabs (Sound Effects): wystrzały, trafienia, podwozie i teren, ambienty, obsługa broni, wojna i meldunki
 
 Dźwięki, z którymi proceduralny generator ma najwięcej problemów: brzmią syntetycznie, mimo kolejnych poprawek.
 Do podmiany na nagrania lub generację. Prompty są po angielsku, bo ElevenLabs najlepiej rozumie angielski.
@@ -110,6 +110,36 @@ Pliki w specyfikacji są 40-sekundowe (`amb_battle`: 15 s). Maksymalna długoś�
 | `amb_office` | `1940s engineering design office interior: quiet room tone, a wall clock ticking, an old mechanical typewriter typing in bursts with a carriage bell and return, paper rustling, a muffled factory press thumping behind the wall. Calm, no music, no voices, no modern electronics.` |
 | `fire_loop` | `A burning destroyed tank close up: roaring fire, crackling and popping flames, hissing, occasional small pops of burning ammunition, metal ticking from heat. Constant intensity, loopable, no explosions, no music, no voices.` |
 
+## Obsługa broni
+
+| plik | czas | pętla | prompt |
+|---|---|---|---|
+| `gun_breech_1` | 1,2 s | nie | `Inside a WWII tank turret: the heavy sliding-wedge breech of the main gun drops open with a solid steel clack, and a large empty brass shell casing slides out and clangs onto the steel floor. Close, dry, cramped metal interior, no gunshot, no music, no voices.` |
+| `gun_breech_2` | 1,2 s | nie | `Inside a WWII tank turret: a heavy tank shell is pushed into the gun chamber with a metallic slide, then the steel breech block slams shut with a heavy clank and a sharp latch click. Close, dry, cramped metal interior, no gunshot, no music, no voices.` |
+| `shell_casing_1` | 1,0 s | nie | `A large empty brass tank shell casing drops onto a steel floor: bright ringing clang, a few bounces getting faster and quieter, then it rolls briefly with a hollow brass ring. Close, dry, no music.` |
+| `shell_casing_2` | 1,0 s | nie | `A large empty brass shell casing falls onto packed dirt: a short dull clunk, one small bounce, muted brass ring that dies quickly. Outdoors, close, no music.` |
+| `shell_casing_3` | 1,0 s | nie | `A heavy brass artillery shell casing hits a steel deck, bounces several times with a deep resonant ring, then rolls away rattling across the metal floor. Close, dry, no music.` |
+| `turret_traverse` | 6–8 s | tak | `A WWII tank turret rotating steadily: smooth whine of the electric traverse motor, gear whine of the turret ring drive, deep low rumble of the heavy turret turning on its ball bearing ring, faint metal friction. Constant speed, smooth, no crackling, no engine sound, no music.` |
+
+Do `turret_traverse`: jeśli wychodzi trzeszczący szum (brzmiało już raz „jak spawanie”), dopisz
+`smooth tonal motor hum, no static, no crackle, no welding sound`.
+
+## Wojna i meldunki
+
+`ace` i `report_defeat` to krótkie sygnały muzyczne (w specyfikacji „szkic”). Jeśli generator efektów
+robi z nich hałas, lepiej wygenerować je w **ElevenLabs Music** albo nagrać.
+
+| plik | czas | prompt |
+|---|---|---|
+| `report_open` | 1,2 s | `A 1940s military teleprinter or telegraph receiving a message: rapid mechanical clattering of typebars for about one second, then a single small bell ding as the line ends. Close, dry office, no music, no voices.` |
+| `stamp` | 0,4 s | `A heavy rubber stamp pressed firmly onto paper on a wooden desk: one solid dull thump with a slight wooden knock. Close, dry, single hit, no music.` |
+| `ace` | 2,5 s | `Short triumphant military sting: a crisp snare drum roll building for one second, a cymbal crash, then a bold two-note brass fanfare rising, with a timpani hit. 1940s military band style, no voices.` |
+| `report_defeat` | 2,0 s | `Short somber military sting: three slow, heavy, muffled bass drum hits with a low rumble underneath, dark and mournful, fading out. No melody, no voices.` |
+| `war_start` | 3,0 s | `Outbreak of war in a 1940s town: an air-raid siren winding up and wailing, a second siren further away slightly out of tune, long echo between buildings, and three distant heavy explosions rumbling in the background. Outdoor, no music, no voices.` |
+| `hangar_arrive` | 2,5 s | `A WWII tank drives slowly into a large hangar and stops: steel tracks clanking on concrete slowing down, a heavy final clunk as it halts, then the engine idles with a low rumble, echoing in the big hall. No music, no voices.` |
+
+`amb_battle` (z grupy „Wojna i meldunki”) jest wyżej, w sekcji „Ambienty”.
+
 ## Wskazówki, gdy wynik jest zły
 
 - **Za mało mocy**: dopisz `massive, concussive, chest-hitting low end, close perspective`.
@@ -120,3 +150,4 @@ Pliki w specyfikacji są 40-sekundowe (`amb_battle`: 15 s). Maksymalna długoś�
 - **Dokłada silnik do gąsienic lub terenu**: dopisz `no engine sound, no engine noise` (czasem pomaga też `recorded with the engine off, coasting`).
 - **Rytm gąsienic za szybki lub za wolny**: dopisz `slow walking pace` / `moderate speed` / `fast speed`.
 - **W ambiencie są współczesne dźwięki**: dopisz `1940s, no modern cars, no airplanes, no electronics`.
+- **Sygnał muzyczny brzmi jak hałas**: użyj ElevenLabs Music albo dopisz `clean, short musical sting, military band instruments`.
