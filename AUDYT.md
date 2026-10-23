@@ -169,3 +169,34 @@ i ciche tarcie. Powyżej 4 kHz zostało −60 dB (wcześniej −17 dB), bez trza
 Zostawione bez zmian: stylizowane sygnały muzyczne i dzwonki (`tender_*`, `medal`, `ace`, `money_in`, `month_next`…
 oznaczone w specyfikacji jako szkice do podmiany na nagrania), `fire_loop`, `report_open`, `stamp`, gąsienice
 (trzaski ogniw to prawdziwe transjenty metalu).
+
+## Runda 5: szelest w strzałach i trafieniach, gąsienice, zawieszenie, ambienty
+
+**„Zgniatana reklamówka” w strzałach i trafieniach**, trzy źródła:
+1. Echa od lasu/zabudowy były 50-ms „chmurkami” szumu: ostry trzask przepuszczony przez szum to szelest.
+   Teraz echo to kilka wyraźnych, przyciemnionych kopii dźwięku (odbicia od kilku powierzchni).
+2. Ogon pleneru narastał przez 150 ms po ciszy i był jasny (1,4–6 kHz). Po krótkim trafieniu dawało to osobne „szszsz”.
+   Teraz startuje po 50 ms, narasta 40 ms, potem tylko gaśnie, jest ciemniejszy, a w trafieniach i karabinach ~2× cichszy.
+3. Szybka losowa modulacja (120 Hz w podmuchu, 60 Hz w wybuchu, 90/300 Hz w zgrzytach) przez cały zanik
+   (`earlyRough` ogranicza ją do ataku), iskry jako rzadkie losowe ziarna (teraz gładki, krótki syk), roje
+   odprysków 140–200/s z szumowych brzęków (teraz ~45/s, metaliczne).
+
+Miara „szelestu” (szybkie wahania obwiedni 1–6 kHz): gładki szum 1,3 dB, nagrania 1,9–2,8 dB, działa v4 1,7–2,2 dB.
+
+**Gąsienice „jak kapiąca woda”**: każde ogniwo było kilkoma czystymi tonami o losowej wysokości, czyli kroplami.
+`trackSet4`: kilka typów ogniw o stałej barwie (powtarzalny wzór), ciężkie tłumione uderzenia stali (koło
+napędowe i napinające), grzechot sworzni, pomruk w rytmie ogniw, toczenie kół jezdnych, lekki pisk, zabarwienie
+kadłubem. Dotyczy `track_steel`, `track_ww1`, `track_rubber`, `halftrack_roll`, `track_spin`. Wystające piki
+9–11 dB (poziom szumu), bez tonalności.
+
+**Zawieszenie i reszta podwozia**: `susp_bump`/`step_hit` to masa pojazdu (szum, nie sinus), odbojnik,
+sprężyna, grzechot wyposażenia (+ grudy ziemi w `step_hit`). `brake`: zwalniające ogniwa, pisk taśmy
+z drżeniem, pojazd kiwa się na zawieszeniu. `belly_scrape`: metaliczny zgrzyt stick-slip. `hull_creak`: ciche tarcie.
+
+**Ambienty**: `amb_range` (wiatr z płynnymi porywami, ptaki: tryle, dwutony, świergot, odległe strzały prób,
+daleki czołg), `amb_town` (szum ulicy, kuźnia, ciężarówka, parowy gwizd fabryczny; usunięty sztuczny brum
+100 Hz), `amb_office` (szum pokoju, prasa za ścianą, zegar z wychwytem, maszyna do pisania z dzwonkiem
+i powrotem karetki, kartki), `amb_battle` (+ przeloty pocisków, daleki czołg, wiatr). `war_start`: dwie
+rozstrojone syreny z sekaniem wirnika i echem zabudowy, odległe wybuchy.
+
+Silniki: bez zmian (tryb bliski pleneru zachowany; render bajt w bajt identyczny z poprzednią wersją).
