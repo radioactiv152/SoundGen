@@ -138,3 +138,34 @@ Bilans pasm (dB względem 300–1000 Hz, 40–100 / 100–300 / 1–3k / 3–5k)
 | salwa z nagrania | −5…−2 | 0…+1,5 | −3…+3,5 | −10…−3 |
 | `cannon_m_fire` v4 | +0,4 | +2,5 | −0,6 | −2,6 |
 | `cannon_l_fire` v4 | +0,2 | −1,5 | +0,3 | −2,6 |
+
+## Runda 4: „beczka” w strzałach, spawanie w wieży, przegląd wszystkiego poza silnikami
+
+**„Beczka” w strzałach**, przyczyny zmierzone:
+1. Rozproszony ogon pleneru zaczynał się po ~20 ms. Gęste odbicia w pierwszych 5–80 ms ucho odbiera jako
+   zamkniętą przestrzeń. Na otwartym terenie po dźwięku bezpośrednim jest tylko słabe, ciemne odbicie od ziemi,
+   a ogon lasu/terenu zaczyna się po ~80 ms i narasta powoli (`outdoorIr`, tryb otwarty; silniki zostały
+   przy starym, bliskim trybie `open: false`).
+2. Ogon był o ~18 dB głośniejszy niż wybrzmienie samego strzału (hala). Strzały to warstwa „sucha”,
+   długi ogon daje `shot_tail`, więc poziomy pogłosu zmniejszone ~2×. Trafienia też.
+3. Mechanika odrzutu dzwoniła modami blachy i kadłuba z zanikiem 0,2–0,3 s. W wybrzmieniu działa
+   były wąskie piki rezonansowe +17–18 dB (w nagraniach 11–16 dB). Teraz to tłumiony stuk masy.
+
+**Obrót wieży „jak spawanie”**: szum szerokopasmowy z szybką losową modulacją (40 Hz, 20 Hz) i syk 3–9 kHz.
+Teraz to gładki ton silnika napędu z harmonicznymi, wycie przekładni z biciem wałka, pomruk łożyska wieńca
+i ciche tarcie. Powyżej 4 kHz zostało −60 dB (wcześniej −17 dB), bez trzasków.
+
+**Przegląd grup (bez silników):**
+
+| Grupa | Co było nie tak | Co zrobione |
+|---|---|---|
+| Obsługa broni | `gun_breech`: czyste tony urywane w ciszę; `shell_casing`: cienkie „pingi” | zamek klinowy (masywna stal, ślizg, wyrzut łuski, zatrzask) we wnętrzu wieży; łuska jako mosiężna rura (tryby pierścieniowe w rozstrojonych parach = dudnienie), odbicia, toczenie |
+| Podwozie i teren | `hull_creak` 41–44 trzasków/s (twarde bramkowanie); `belly_scrape`, `track_spin` „spawające” (szum z modulacją 110/25 Hz); `surf_sand` syczący; `water_enter` ucięty | skrzypienie stick-slip na łagodnych impulsach (0 trzasków/s); szorowanie: niskie tarcie, żwir, uderzenia w kamień; piach: gęsty, drobny chrzęst z ogniwami; buksowanie: miękka ziemia; wjazd do wody z falami o burty (2 s) |
+| Kreator | `ed_armor`: ton 137 Hz wystający o 47 dB; `ed_remove`/`ed_swap` ucinane z piszczącym tonem; „bum”-sinusy | spójny warsztat: masywna stal (tłumione, gęste mody), śruby, grzechotka klucza, łańcuch dźwigu, młot pneumatyczny na wspólnych modach blachy, spawanie z łagodnym zapaleniem/zgaśnięciem, pogłos hali |
+| Interfejs | `ui_click`/`ui_slider` = czysty sinus; `ui_drawer` = szum modulowany 20–30 Hz; „knock” = sinus-bębenek; twarde cięcia | bakelitowy przełącznik, zapadka, drewniane stuknięcia (tłumione mody deski), szuflada z tarciem drewna i rezonansem pudła; wyciszanie zamiast cięć |
+| Firma, poligon | `research_start` ucięty syk; `deadline` tonalne kliki; `trial_start` czysty sinus | wkładanie kartki do maszyny (zapadka wałka + papier), zegar z wychwytem (tik-tak) w drewnianej obudowie, gwizdek z kulką i oddechem |
+| Wojna | `amb_battle`: 6 sinusowych „bumów”, zdarzenia przy końcu pętli ucinane (dziura w pętli); `war_start`: czysty sweep | front z daleka: artyleria (wybuchy v4 z pochłanianiem powietrza i długim ogonem stereo, ostre ataki jak w nagraniu), wystrzały, serie km (różne tempa), pojedyncze strzały, wszystko zawijane w pętli; syrena z wirnikiem + odległe wybuchy |
+
+Zostawione bez zmian: stylizowane sygnały muzyczne i dzwonki (`tender_*`, `medal`, `ace`, `money_in`, `month_next`…
+oznaczone w specyfikacji jako szkice do podmiany na nagrania), `fire_loop`, `report_open`, `stamp`, gąsienice
+(trzaski ogniw to prawdziwe transjenty metalu).

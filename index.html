@@ -3238,24 +3238,28 @@ function plateSet(rng, lo, hi, count, t60, o) {
   }
   return { f: fs, t: ts, g: gs };
 }
-/* odpowiedź plenerowa: bezpośredni + odbicie od ziemi + echa (las, zabudowa) + rozproszony ogon ciemniejący w czasie */
+/* odpowiedź plenerowa: bezpośredni + odbicie od ziemi + echa (las, zabudowa) + rozproszony ogon ciemniejący w czasie.
+ * Otwarty teren (domyślnie): po dźwięku bezpośrednim tylko słabe, ciemne odbicie od ziemi, potem przerwa; ogon od lasu
+ * i terenu zaczyna się po ~80 ms i narasta powoli. Gęste odbicia w pierwszych 5-80 ms ucho bierze za zamknięte
+ * pomieszczenie ("beczka"). o.open === false - dawne, bliskie zachowanie (zostawione dla silników). */
 function outdoorIr(rng, o) {
-  var n = N(o.dur || 1.6), ir = new S(n), i;
+  var n = N(o.dur || 1.6), ir = new S(n), i, open = o.open !== false;
   ir[0] = 1;
   if (o.ground !== 0) {
-    var gk = lp(fit(fromArr([1]), 96), o.groundLp || 2500, 2);
-    place(ir, gk, (o.groundMs === undefined ? 4 : o.groundMs) / 1000, o.ground === undefined ? 0.5 : o.ground);
+    var gk = lp(fit(fromArr([1]), 96), o.groundLp || (open ? 1100 : 2500), 2);
+    place(ir, gk, (o.groundMs === undefined ? 4 : o.groundMs) / 1000, (o.ground === undefined ? 0.5 : o.ground) * (open ? 0.55 : 1));
   }
   (o.echoes || []).forEach(function (e) {
     var d = N(0.05), b = lp(noise(d, rng, 60, null, {}).mul(dec(d, e[3] || 0.02, 0.003)), e[2], 2), en = 0;
     for (i = 0; i < d; i++) en += b[i] * b[i];
-    place(ir, b.mul(1 / Math.sqrt(en + 1e-12)), e[0], e[1]);
+    place(ir, b.mul(1 / Math.sqrt(en + 1e-12)), Math.max(e[0], open ? 0.07 : 0), e[1]);
   });
   if (o.tail) {
-    var pre = o.pre === undefined ? 0.03 : o.pre, rt = o.rt || 1.2;
-    var tl = mbBurst(n, rng, [[40, 350, rt, 0.3, pre], [350, 1400, rt * 0.8, 0.55, pre], [1400, 6000, rt * 0.45, 1.0, pre]]), et = 0;   /* równa gęstość widma na Hz; góra gaśnie szybciej */
+    var pre = o.pre === undefined ? 0.03 : o.pre, rt = o.rt || 1.2, dl = open ? Math.max(0.08, 3 * pre) : 0, at = open ? 0.15 : pre;
+    var tl = mbBurst(n, rng, [[40, 350, rt, 0.3, at], [350, 1400, rt * 0.8, 0.55, at], [1400, 6000, rt * 0.45, 1.0, at]]), et = 0;   /* równa gęstość widma na Hz; góra gaśnie szybciej */
     for (i = 0; i < n; i++) et += tl[i] * tl[i];
-    ir = ir.add(tl.mul(o.tail / Math.sqrt(et + 1e-12)));
+    var sh = new S(n); place(sh, tl, dl, 1);
+    ir = ir.add(sh.mul(o.tail / Math.sqrt(et + 1e-12)));
   }
   return ir;
 }
@@ -3320,7 +3324,7 @@ function impact4(r, n, o) {
   return y;
 }
 function hitEnv(r, o) {
-  return Object.assign({ dur: 1.2, ground: 0.45, groundMs: 5, rt: 0.9, tail: 0.3, pre: 0.02, echoes: [[r.uniform(0.12, 0.22), 0.1, 1400, 0.03], [r.uniform(0.35, 0.55), 0.06, 900, 0.04]] }, o || {});
+  return Object.assign({ dur: 1.2, ground: 0.45, groundMs: 5, rt: 0.9, tail: 0.15, pre: 0.02, echoes: [[r.uniform(0.12, 0.22), 0.08, 1400, 0.03], [r.uniform(0.35, 0.55), 0.05, 900, 0.04]] }, o || {});
 }
 
 /* ----- silnik v4 ----- */
@@ -3454,7 +3458,7 @@ function engineCore4(r, n, ev, p, circ) {
   }
   y = lp(y, p.out, 2, circ);
   y = y.add(lp(y, 140, 2, circ).mul(0.12));                                                                    /* kadłub: dociążenie basu */
-  y = outdoor(y.slice(0, circ ? n : m), r, { dur: 0.9, ground: 0.5, groundMs: 3, rt: 0.7, tail: 0.18, pre: 0.01, echoes: [[0.09, 0.12, 1500]] }, circ);
+  y = outdoor(y.slice(0, circ ? n : m), r, { open: false, dur: 0.9, ground: 0.5, groundMs: 3, rt: 0.7, tail: 0.18, pre: 0.01, echoes: [[0.09, 0.12, 1500]] }, circ);
   return y.slice(0, n);
 }
 ['petrol', 'diesel', 'small', 'radial', 'ww1'].forEach(function (kind) {
@@ -3479,7 +3483,7 @@ sfxV4('eng_turbine', function (c) {
   var rum = noise(n, r, 25, 180, { slope: -1.5, order: 3 }).mul(lfo(n, r, 3, 0.3)).mul([0.5, 0.6, 0.7][lvl]);
   var hiss = noise(n, r, 4000, 14000).mul([0.03, 0.05, 0.08][lvl]);
   var out = y.add(jet).add(rum).add(hiss);
-  return outdoor(out, r, { dur: 0.9, ground: 0.5, groundMs: 3, rt: 0.7, tail: 0.15, pre: 0.01, echoes: [[0.09, 0.12, 1500]] }, true);
+  return outdoor(out, r, { open: false, dur: 0.9, ground: 0.5, groundMs: 3, rt: 0.7, tail: 0.15, pre: 0.01, echoes: [[0.09, 0.12, 1500]] }, true);
 });
 /* zdarzenia silnika z krzywej obrotów: rpmFn(t), pFire(t) - prawdopodobieństwo zapłonu, aFn(t) - siła */
 function eventsFromRpm(r, p, t0, t1, rpmFn, pFire, aFn) {
@@ -3642,7 +3646,7 @@ sfxV4('hit_ricochet', function (c) {
     place(y, y2.mul(0.6 * pk / (maxAbs(y2) + 1e-12)), t2, 1);
     flyAway(t2 + 0.004, 0.7, 2300, 900, 0.4);
   } else flyAway(0.01, 0.9, c.u(3200, 3800), c.u(1800, 2200), 0.35);
-  return outdoor(y, r, hitEnv(r, { tail: 0.25 }));
+  return outdoor(y, r, hitEnv(r, { tail: 0.12 }));
 }, 1.2);
 /* pocisk kumulacyjny: wybuch ładunku na pancerzu, strumień przebijający (syk), odpryski */
 sfxV4('hit_heat', function (c) {
@@ -3654,7 +3658,7 @@ sfxV4('hit_heat', function (c) {
   var sp = new S(n);
   poisson(r, 0.4, null, function (t) { return 10 + 120 * Math.exp(-t / 0.12); }, 0.02).forEach(function (t) { place(sp, metalClink(r, { f0: 800, f1: 6000, count: 5, t60: 0.02, noise: 0.8, tonal: 0.4, gain: r.uniform(0.2, 0.8) }), t, 1); });
   y = y.add(lp(reverb(sp, smallRoom(r, 0.04), 1.2, 0.2, n), 4000, 2).mul(0.15 * pk / (maxAbs(sp) + 1e-12)));
-  return outdoor(y, r, hitEnv(r, { dur: 1.4, rt: 1.1, tail: 0.45 }));
+  return outdoor(y, r, hitEnv(r, { dur: 1.4, rt: 1.1, tail: 0.25 }));
 }, 1.4);
 sfxV4('hit_spall', function (c) {
   var n = c.n, r = c.rng, sp = new S(n);
@@ -3673,7 +3677,7 @@ sfxV4('hit_module', function (c) {
   var sp = new S(n);
   for (var i = 0, k = r.int(5, 10); i < k; i++) place(sp, metalClink(r, { f0: 500, f1: 4000, count: 6, t60: 0.04, noise: 0.7, gain: r.uniform(0.2, 0.7) }), r.uniform(0.05, 0.5), 1);
   y = y.add(hullBox(r, n, sp).mul(0.25 * pk / (maxAbs(sp) + 1e-12))).add(lp(sp, 4000, 2).mul(0.15 * pk / (maxAbs(sp) + 1e-12)));
-  return outdoor(y, r, hitEnv(r, { tail: 0.2 }));
+  return outdoor(y, r, hitEnv(r, { tail: 0.1 }));
 });
 
 /* ----- strzały v4 -----
@@ -3701,8 +3705,8 @@ function gunshot4(r, n, o) {
   nw = lp(nw, 14000, 2);
   place(y, nw.mul((o.crack === undefined ? 0.7 : o.crack) * pk / (maxAbs(nw) + 1e-12)), 0, 1);
   if (o.mech) o.mech(y, pk);
-  var env = Object.assign({ dur: Math.min(n / SR, 1.5), ground: 0.6, groundMs: 3 + 4 * cc, rt: 0.5 + 1.2 * cc, tail: 0.25 + 0.25 * cc, pre: 0.02,
-    echoes: [[r.uniform(0.09, 0.16), 0.16, 2000, 0.02], [r.uniform(0.25, 0.4), 0.1, 1200, 0.03]] }, o.env || {});
+  var env = Object.assign({ dur: Math.min(n / SR, 1.5), ground: 0.6, groundMs: 3 + 4 * cc, rt: 0.5 + 1.2 * cc, tail: 0.1 + 0.12 * cc, pre: 0.03,
+    echoes: [[r.uniform(0.12, 0.2), 0.09, 2000, 0.02], [r.uniform(0.3, 0.5), 0.06, 1200, 0.03]] }, o.env || {});   /* sucha warstwa: długi ogon daje shot_tail */
   return outdoor(y, r, env);
 }
 /* mechanika: zamek broni maszynowej (metaliczne kliknięcie, mało jaśniejsze) */
@@ -3718,7 +3722,7 @@ function recoilMech(r, cal) {
     var t1 = 0.05 + 0.06 * cal, t2 = t1 + 0.18 + 0.2 * cal;
     var slide = bp(noise(N(0.15), r), 300, 2500, 2).mul(gen(N(0.15), function (t) { return Math.sin(Math.PI * t / 0.15); })).mul(lfo(N(0.15), r, 90, 0.7));
     place(y, slide.mul(0.05 * pk / (maxAbs(slide) + 1e-12)), t1, 1);
-    var cl = impact4(r, N(0.5), { lo: 150, hi: 4000, count: 50, t60: 0.2, tc: 0.0003, hullF: 80, hullT: 0.3, hull: 0.8, thud: 0.6, bang: 0.1, spark: 0, drive: 1.4 });
+    var cl = impact4(r, N(0.5), { lo: 200, hi: 4000, count: 60, t60: 0.05, tc: 0.0004, hullF: 80, hullT: 0.08, hull: 0.25, thud: 1.0, bang: 0.1, spark: 0, drive: 1.4 });   /* tłumiony stuk (masa), nie dzwon */
     place(y, cl.mul(0.09 * pk / (maxAbs(cl) + 1e-12)), t2, 1);                                               /* powrót lufy */
     var rock = burst(N(0.6), r, 0.4, 18, 60, { attack: 0.03, order: 3 });
     place(y, rock.mul(0.07 * pk / (maxAbs(rock) + 1e-12)), 0.03, 1);                                          /* pojazd kołysze się */
@@ -3727,17 +3731,17 @@ function recoilMech(r, cal) {
 sfxV4('mg_shot', function (c) {
   var r = c.rng, v = c.v;
   return gunshot4(r, c.n, { cal: [0.08, 0.09, 0.07][v], peak: c.u(1800, 2800), body: c.u(0.05, 0.07), boom: 0.08, crack: 0.8, drive: 2.8,
-    mech: boltClack(r, c.u(0.008, 0.012), 0.07), env: { rt: 0.35, tail: 0.18, dur: 0.35, echoes: [[r.uniform(0.07, 0.12), 0.12, 2500, 0.015]] } });
+    mech: boltClack(r, c.u(0.008, 0.012), 0.07), env: { rt: 0.35, tail: 0.08, dur: 0.35, echoes: [[r.uniform(0.07, 0.12), 0.12, 2500, 0.015]] } });
 }, 0.35);
 sfxV4('hmg_shot', function (c) {
   var r = c.rng;
   return gunshot4(r, c.n, { cal: c.u(0.14, 0.17), peak: c.u(1100, 1600), body: c.u(0.08, 0.1), boom: 0.22, crack: 0.8, drive: 2.8,
-    mech: boltClack(r, c.u(0.012, 0.016), 0.08), env: { rt: 0.45, tail: 0.2, dur: 0.5, echoes: [[r.uniform(0.08, 0.13), 0.14, 2200, 0.015]] } });
+    mech: boltClack(r, c.u(0.012, 0.016), 0.08), env: { rt: 0.45, tail: 0.09, dur: 0.5, echoes: [[r.uniform(0.08, 0.13), 0.14, 2200, 0.015]] } });
 }, 0.5);
 sfxV4('autocannon_shot', function (c) {
   var r = c.rng;
   return gunshot4(r, c.n, { cal: c.u(0.24, 0.28), peak: c.u(800, 1100), boom: 0.35, crack: 0.7,
-    mech: boltClack(r, c.u(0.025, 0.03), 0.12), env: { dur: 0.7, rt: 0.6, tail: 0.25 } });
+    mech: boltClack(r, c.u(0.025, 0.03), 0.12), env: { dur: 0.7, rt: 0.6, tail: 0.1 } });
 }, 0.7);
 sfxV4('cannon_s_fire', function (c) {
   var r = c.rng;
@@ -3754,11 +3758,11 @@ sfxV4('cannon_l_fire', function (c) {
 sfxV4('howitzer_fire', function (c) {
   var r = c.rng;
   /* haubica: niższa prędkość pocisku - słabszy trzask, potężniejszy, dłuższy podmuch */
-  return gunshot4(r, c.n, { cal: c.u(1.15, 1.25), peak: c.u(300, 380), body: 0.55, boom: 0.85, crack: 0.25, drive: 2.6, mech: recoilMech(r, 1.2), env: { dur: 2.2, rt: 2.0, tail: 0.55 } });
+  return gunshot4(r, c.n, { cal: c.u(1.15, 1.25), peak: c.u(300, 380), body: 0.55, boom: 0.85, crack: 0.25, drive: 2.6, mech: recoilMech(r, 1.2), env: { dur: 2.2, rt: 2.0, tail: 0.25 } });
 }, 2.2);
 sfxV4('recoilless_fire', function (c) {
   var n = c.n, r = c.rng;
-  var y = gunshot4(r, n, { cal: 0.5, peak: 700, crack: 0.6, boom: 0.4, env: { dur: 1.2, rt: 1.2, tail: 0.45 } }), pk = maxAbs(y);
+  var y = gunshot4(r, n, { cal: 0.5, peak: 700, crack: 0.6, boom: 0.4, env: { dur: 1.2, rt: 1.2, tail: 0.2 } }), pk = maxAbs(y);
   /* podmuch do tyłu: szeroki ryk gazów z dyszy */
   var bb = noise(n, r, 150, 9000, { slope: -0.4 }).mul(gen(n, function (t) { return Math.min(t / 0.004, 1) * Math.exp(-6.9 * t / 0.7); })).mul(lfo(n, r, 60, 0.5));
   bb = tvLp(bb, function (t) { return 1500 + 8000 * Math.exp(-t / 0.15); }, 2);
@@ -3793,25 +3797,26 @@ sfxV4('shot_tail', function (c) {
   return out;
 });
 
-/* ----- obrót wieży v4: silnik elektryczny/hydrauliczny, zazębienie wieńca, toczenie na łożysku, skrzypienie ----- */
+/* ----- obrót wieży v4: gładki silnik napędu (elektryczny/hydrauliczny), wycie przekładni, pomruk wieńca, ciche tarcie -----
+ * Bez szerokopasmowego szumu z szybką losową modulacją - to brzmi jak łuk spawalniczy. Cała pętla okresowa (bez szwu). */
 sfxV4('turret_traverse', function (c) {
-  var n = c.n, r = c.rng, L = c.dur, q = function (f) { return Math.max(1, Math.round(f * L)) / L; }, i;
-  var fm = q(r.uniform(105, 125)), fw = q(r.uniform(1900, 2300)), ft = q(r.uniform(55, 70)), fb = q(2), mot = new S(n);
-  var amps = [1, 0.55, 0.45, 0.3, 0.25, 0.18, 0.14, 0.1, 0.08, 0.06, 0.05, 0.04];
+  var n = c.n, r = c.rng, L = c.dur, q = function (f) { return Math.max(1, Math.round(f * L)) / L; }, i, k;
+  var fm = q(r.uniform(95, 115)), fsl = q(fm * 11.0), fg = q(r.uniform(380, 460)), fsh = q(r.uniform(6, 8)), fw = q(0.67);
+  var mot = new S(n), gear = new S(n);
   for (i = 0; i < n; i++) {
-    var t = i / SR, s = 0, wob = 0.15 * Math.sin(TAU * fb * t);
-    for (var k = 0; k < amps.length; k++) s += amps[k] * Math.sin(TAU * fm * (k + 1) * t + k * 1.3 + wob * (k + 1));
-    mot[i] = s + 0.12 * Math.sin(TAU * fw * t + 0.8 * Math.sin(TAU * q(3) * t));
+    var t = i / SR, wob = 0.004 * Math.sin(TAU * fw * t), s = 0;
+    for (k = 1; k <= 14; k++) s += Math.pow(k, -1.3) * Math.sin(TAU * fm * k * t * (1 + wob) + k * 0.9);
+    mot[i] = s + 0.06 * Math.sin(TAU * fsl * t + 0.4 * Math.sin(TAU * fw * t));                                  /* buczenie + szczelinowe wycie wirnika */
+    var am = 1 + 0.35 * Math.sin(TAU * fsh * t) + 0.15 * Math.sin(TAU * 2 * fsh * t + 1);                       /* bicie zębatki na wałku */
+    gear[i] = am * (Math.sin(TAU * fg * t) + 0.45 * Math.sin(TAU * 2 * fg * t + 0.7) + 0.15 * Math.sin(TAU * 3 * fg * t + 1.9));
   }
-  mot = lp(mot, 2500, 2, true).mul(lfo(n, r, 8, 0.12));                                                         /* silnik z lekkim "falowaniem" obciążenia */
-  /* zazębienie: szum pobudzany w rytmie zębów - chropawe brzęczenie */
-  var mesh = bp(noise(n, r), 500, 3500, 2, true).mul(gen(n, function (t) { return 0.3 + 0.7 * Math.pow(0.5 + 0.5 * Math.sin(TAU * ft * t), 2); })).mul(lfo(n, r, 20, 0.4));
-  /* wieniec / łożysko kulkowe: niski pomruk z nierównościami */
-  var rum = noise(n, r, 35, 220, { slope: -1, order: 3 }).mul(lfo(n, r, 4, 0.5));
-  /* skrzypienie: tarcie o wolno zmiennej wysokości */
-  var sq = bp(noise(n, r), 900, 2600, 2, true).mul(lfo(n, r, 1.5, 0.9)).mul(lfo(n, r, 40, 0.6));
-  var y = normRms(mot).mul(0.45).add(normRms(mesh).mul(0.35)).add(normRms(rum).mul(0.35)).add(normRms(sq).mul(0.06)).add(noise(n, r, 3000, 9000).mul(0.03));
-  return outdoor(hullBox2(r, y), r, { dur: 0.6, ground: 0.4, groundMs: 2, rt: 0.4, tail: 0.1, pre: 0.005, echoes: [] }, true);
+  mot = lp(mot, 1800, 2, true);
+  var gearN = lp(bp(noise(n, r), 300, 1400, 2, true), 1600, 2, true).mul(lfo(n, r, 6, 0.3));                    /* lekka chropowatość zazębienia */
+  var rum = noise(n, r, 30, 200, { slope: -1, order: 3 }).mul(lfo(n, r, 3, 0.45));                               /* toczenie na łożysku wieńca */
+  var fric = lp(bp(noise(n, r), 250, 1000, 2, true), 1200, 2, true).mul(lfo(n, r, 1.5, 0.6));                     /* tarcie, wolno zmienne */
+  var y = normRms(mot).mul(0.5).add(normRms(gear).mul(0.3)).add(normRms(gearN).mul(0.12)).add(normRms(rum).mul(0.45)).add(normRms(fric).mul(0.08));
+  y = lp(y, 4000, 2, true);
+  return outdoor(hullBox2(r, y), r, { open: false, dur: 0.6, ground: 0.4, groundMs: 2, rt: 0.4, tail: 0.08, pre: 0.005, echoes: [] }, true);
 });
 /* lekkie zabarwienie wnętrzem/kadłubem (pętle) */
 function hullBox2(r, x) {
@@ -3867,6 +3872,374 @@ sfxV4('hit_mg', function (c) {
   if (v === 2) place(y, impact4(r, N(0.15), { lo: c.u(1000, 1500), hi: 12000, count: 40, t60: 0.07, tc: 0.00004, hull: 0.1, thud: 0.1, bang: 0.9, tp: 0.00025, drive: 1.6, spark: 0.6, sparkDur: 0.02 }).mul(0.7 * pk), c.u(0.045, 0.07), 1);
   return outdoor(y, r, hitEnv(r, { dur: 0.3, rt: 0.35, tail: 0.2, echoes: [[r.uniform(0.07, 0.12), 0.1, 2500, 0.015]] }));
 }, 0.3);
+
+/* ----- obsługa broni v4 ----- */
+/* mody mosiężnej łuski (rura swobodna): tryby pierścieniowe n=2..6 (~ n(n²-1)/sqrt(n²+1)), każdy jako lekko rozstrojona para
+ * (niedoskonała okrągłość) - stąd charakterystyczne dudnienie dźwięczącej łuski */
+function casingModes(r, f0, t60) {
+  var rat = [1, 2.83, 5.43, 8.77, 12.9], o = { f: [], t: [], g: [] };
+  rat.forEach(function (k, i) {
+    var f = f0 * k * r.uniform(0.98, 1.02);
+    [1, 1 + r.uniform(0.002, 0.008)].forEach(function (d, j) { o.f.push(f * d); o.t.push(t60 / (1 + 0.5 * i) * r.uniform(0.8, 1.1)); o.g.push((j ? 0.7 : 1) * Math.pow(0.62, i) * r.uniform(0.7, 1)); });
+  });
+  return o;
+}
+/* łuska spadająca na podłogę: odbicia coraz bliżej i słabiej, dźwięczenie trwa między odbiciami, na końcu toczenie */
+function casingDrop(r, n, o) {
+  var md = casingModes(r, o.f0, o.t60), exc = new S(n), t = 0, a = 1, g = o.gap, kb = grainBank(r, 6, 300, 9000, 0.0008, 0.00005);
+  for (var k = 0; k < o.bounces && t < n / SR - 0.1; k++) { addAt(exc, kb[r.int(0, 6)], Math.round(t * SR), a, false); t += g; g *= o.shrink; a *= o.loss; }
+  var y = modeBank(exc, md.f, md.t, md.g), sc = 1 / (maxAbs(y) + 1e-12), fl = plateSet(r, 120, 2000, 30, 0.06);
+  var floor = modeBank(lp(exc, 2500, 2), fl.f, fl.t, fl.g);                                                   /* podłoga/podłoże */
+  y = y.mul(sc).add(normPk(floor).mul(o.floor));
+  if (o.roll) {                                                                                                /* toczenie: drobne, coraz rzadsze kontakty */
+    var ex2 = new S(n), tr = t, rate = 18, sb = grainBank(r, 6, 300, 3000, 0.002, 0.0005);
+    while (tr < n / SR - 0.05 && rate > 4) { addAt(ex2, sb[r.int(0, 6)], Math.round(tr * SR), 0.12 * r.uniform(0.2, 1) * Math.pow(rate / 18, 2), false); tr += (1 / rate) * r.uniform(0.7, 1.3); rate *= 0.9; }
+    y = y.add(modeBank(ex2, md.f, md.t.map(function (x) { return x * 0.3; }), md.g).mul(sc * o.roll * 4));
+  }
+  if (o.damp) y = lp(y, o.damp, 2).mul(gen(n, function (tt) { return Math.exp(-tt / 0.25); }));               /* miękkie podłoże: tłumi dźwięczenie */
+  return y;
+}
+sfxV4('shell_casing', function (c) {
+  var n = c.n, r = c.rng, v = c.v;
+  var y = casingDrop(r, n, [{ f0: c.u(950, 1250), t60: 0.9, gap: c.u(0.11, 0.14), shrink: 0.62, loss: 0.55, bounces: 6, floor: 0.35, roll: 0.25 },
+    { f0: c.u(900, 1150), t60: 0.5, gap: c.u(0.08, 0.1), shrink: 0.55, loss: 0.35, bounces: 3, floor: 0.6, roll: 0, damp: 2500 },
+    { f0: c.u(750, 950), t60: 1.1, gap: c.u(0.13, 0.16), shrink: 0.6, loss: 0.5, bounces: 5, floor: 0.3, roll: 0.45 }][v]);
+  return reverb(y, smallRoom(r, 0.12), 0.35, 1, n);                                                            /* wnętrze wieży */
+});
+/* zamek działa (klinowy): zwolnienie i opadnięcie klina, wyrzut łuski, wsunięcie pocisku, zamknięcie z zatrzaśnięciem */
+sfxV4('gun_breech', function (c) {
+  var n = c.n, r = c.rng, y = new S(n), v = c.v;
+  var heavy = function (lo, t60, th) { return impact4(r, N(0.4), { lo: lo, hi: 6000, count: 60, t60: t60, tc: 0.0003, hullF: 110, hullT: 0.06, hull: 0.3, thud: th, bang: 0.15, tp: 0.0006, drive: 1.5, spark: 0 }); };
+  var slide = function (d, lo, hi) { var m = N(d); return lp(bp(noise(m, r), lo, hi, 2), hi, 2).mul(gen(m, function (t) { return Math.pow(Math.sin(Math.PI * t / d), 0.7); })).mul(lfo(m, r, 35, 0.5)); };
+  if (v === 0) {                                                                                               /* otwarcie i wyrzut łuski */
+    place(y, normPk(heavy(250, 0.07, 1.0)), 0, 1);
+    place(y, normPk(slide(0.12, 600, 4000)).mul(0.25), 0.03, 1);
+    place(y, casingDrop(r, N(0.9), { f0: c.u(900, 1150), t60: 0.7, gap: 0.12, shrink: 0.6, loss: 0.5, bounces: 4, floor: 0.4, roll: 0.15 }).mul(0.6), 0.18, 1);
+  } else {                                                                                                     /* wsunięcie pocisku i zamknięcie */
+    place(y, normPk(slide(0.28, 300, 2200)).mul(0.3), 0.02, 1);
+    place(y, normPk(burst(N(0.1), r, 0.04, 60, 600, { attack: 0.003 })).mul(0.4), 0.3, 1);                      /* dosłanie pięścią */
+    place(y, normPk(heavy(220, 0.08, 1.0)), c.u(0.5, 0.6), 1);
+    place(y, normPk(impact4(r, N(0.15), { lo: 1500, hi: 9000, count: 30, t60: 0.025, tc: 0.0001, hull: 0.05, thud: 0.1, bang: 0.2, spark: 0, drive: 1.3 })).mul(0.35), c.u(0.62, 0.68), 1);   /* zatrzask */
+  }
+  y = reverb(y, smallRoom(r, 0.12), 0.35, 1, n);
+  return y.add(hullBox(r, n, y).mul(0.15));
+});
+
+/* ----- podwozie i teren v4 ----- */
+/* gładki impuls pobudzający (okno Hanna) - rezonatory startują łagodnie, bez skoku (skok = trzask) */
+function softPulse(rng, dur, lo, hi) { var m = N(dur); return bp(noise(m, rng), lo, hi, 2).mul(gen(m, function (t) { return 0.5 - 0.5 * Math.cos(TAU * t / dur); })); }
+/* skrzypienie: tarcie stick-slip o zmiennym tempie pobudza mody blachy/belki; o: modes{f,t,g}, rate(t), amp(t) */
+function creak4(r, n, o) {
+  var exc = new S(n), t = 0.005, T = n / SR, pb = [];
+  for (var i = 0; i < 6; i++) pb.push(softPulse(r, 0.0022, 250, 2800));
+  while (t < T - 0.01) { var a = o.amp(t); if (a > 0.002) addAt(exc, pb[r.int(0, 6)], Math.round(t * SR), a * (0.7 + 0.3 * r.next()), false); t += (1 / Math.max(8, o.rate(t))) * (1 + 0.12 * r.normal()); }
+  return modeBank(exc, o.modes.f, o.modes.t, o.modes.g);
+}
+sfxV4('hull_creak', function (c) {
+  var n = c.n, r = c.rng, v = c.v;
+  var ps = plateSet(r, v === 0 ? 350 : 260, v === 0 ? 2200 : 1700, 18, 0.05, { tilt: 0.4, dk: 0.4 });
+  var rc = v === 0 ? [[0, 30], [0.5, 48], [1.0, 38], [1.5, 62]] : [[0, 64], [0.6, 42], [1.5, 28]], sw = lfo(n, r, 1.2, 0.8);
+  var y = creak4(r, n, { modes: ps, rate: function (t) { return interp(t, rc.map(function (p) { return p[0]; }), rc.map(function (p) { return p[1]; })); },
+    amp: function (t) { return Math.min(t / 0.2, 1) * Math.min(Math.max((1.45 - t) / 0.4, 0), 1) * (0.25 + 0.75 * Math.max(0, sw[Math.min(n - 1, Math.round(t * SR))] - 0.2)); } });
+  y = normPk(lp(y, 3000, 2));
+  var groan = normPk(modeBank(lp(y, 600, 2), [r.uniform(70, 90), r.uniform(120, 150), r.uniform(190, 230)], [0.2, 0.15, 0.1], [1, 0.7, 0.5]));   /* kadłub "jęczy" pod spodem */
+  return y.add(groan.mul(0.35)).add(noise(n, r, 40, 250, { slope: -1 }).mul(trap(n, 0.2, 1.1, 0.35)).mul(0.04));
+});
+sfxV4('belly_scrape', function (c) {
+  var n = c.n, r = c.rng, e = gen(n, function (t) { return Math.pow(Math.min(t / 0.12, 1), 1.5) * Math.min(Math.max((1.15 - t) / 0.35, 0), 1); });
+  /* brzuch kadłuba szoruje po ziemi i kamieniach: ciężkie tarcie (nisko), chrzęst żwiru, pojedyncze uderzenia w kamień */
+  var grind = noise(n, r, 40, 450, { slope: -1, order: 3 }).mul(lfo(n, r, 7, 0.5));
+  var scr = lp(bp(noise(n, r), 300, 2600, 2), 2800, 2).mul(lfo(n, r, 14, 0.45));
+  var gb = grainBank(r, 12, 400, 2600, 0.012, 0.002), gr = new S(n);
+  poisson(r, c.dur, 70).forEach(function (t) { place(gr, gb[r.int(0, 12)], t, Math.exp(0.6 * r.normal()) * 0.3); });
+  var y = normRms(grind).mul(0.6).add(normRms(scr).mul(0.3)).add(normRms(gr).mul(0.25)).mul(e), pk = maxAbs(y);
+  for (var i = 0; i < 3; i++) place(y, impact4(r, N(0.3), { lo: 150, hi: 3000, count: 40, t60: 0.06, tc: 0.0006, hullF: c.u(70, 90), hullT: 0.18, hull: 0.9, thud: 1.0, bang: 0.05, spark: 0, drive: 1.4 }).mul(r.uniform(0.4, 0.8) * pk), r.uniform(0.15, 0.85), 1);
+  return outdoor(y, r, { dur: 0.6, ground: 0.3, rt: 0.6, tail: 0.12, echoes: [] });
+});
+sfxV4('surf_sand', function (c) {
+  var n = c.n, r = c.rng, dur = c.dur, K = Math.round(dur * 9), y = new S(n), i;
+  /* piach pod gąsienicą: gęsty, drobny chrzęst (wiele słabych ziaren zlewa się w szum) zsynchronizowany z ogniwami */
+  var gb = grainBank(r, 24, 500, 2600, 0.006, 0.001);
+  poisson(r, dur, 1600).forEach(function (t) { var ph = (t * K / dur) % 1; placeCirc(y, gb[r.int(0, 24)].mul((0.25 + 0.75 * Math.exp(-ph / 0.25)) * r.uniform(0.1, 0.6)), t, 1); });
+  for (i = 0; i < K; i++) {
+    var m = N(0.14), t = i * dur / K + r.normal() * 0.006;
+    placeCirc(y, lp(bp(noise(m, r), 250, 2400, 2), 2600, 2).mul(gen(m, function (tt) { return Math.min(tt / 0.025, 1) * Math.exp(-tt * 6.9 / 0.1); })).mul(r.uniform(0.5, 0.9) * 2.5 * stdOf(y)), t, 1);
+  }
+  y = lp(y, 3500, 2, true);
+  return y.add(noise(n, r, 50, 350, { slope: -1.5 }).mul(lfo(n, r, 2, 0.3)).mul(0.6 * stdOf(y)));
+});
+sfxV4('track_spin', function (c) {
+  var n = c.n, r = c.rng, y = trackLinks3(c, { spacing: 0.0741, types: 4, f0: 600, f1: 3200, count: 6, t60: 0.025, tonal: 0.4, noise: 0.35, noiseT60: 0.008, lowF: 120, lowG: 0.45, jitter: 0.1, ampVar: 0.4, release: false });
+  y = lp(y, 5000, 2, true);
+  /* buksujące gąsienice: szybki klekot ogniw, wyrzucana ziemia i żwir (miękkie ziarna), szorowanie */
+  var gb = grainBank(r, 16, 500, 3200, 0.008, 0.0015), sp = new S(n);
+  poisson(r, c.dur, 160).forEach(function (t) { placeCirc(sp, gb[r.int(0, 16)].mul(r.uniform(0.15, 0.7)), t, 1); });
+  var s = stdOf(y);
+  return y.add(sp.mul(0.5 * s / (stdOf(sp) + 1e-12))).add(lp(bp(noise(n, r), 300, 2200, 2, true), 2500, 2, true).mul(lfo(n, r, 6, 0.4)).mul(0.35 * s))
+    .add(trackBed3(c, Math.round(c.dur / 0.0741), 0.3, 0.0));
+});
+sfxV4('water_enter', function (c) {
+  var n = c.n, r = c.rng, big = c.v === 0 ? 1 : 0.7, i;
+  /* wjazd do wody: uderzenie i rozprysk, ściana wody opada (szum), bąble, potem fale chlupią o burty i wygasają */
+  var hitW = normPk(burst(n, r, 0.1, 80, 900, { attack: 0.006, order: 3 })).mul(big);
+  var spray = noise(n, r, 400, 9000, { slope: -0.6 }).mul(gen(n, function (t) { return Math.min(t / 0.03, 1) * Math.exp(-t / 0.18); }));
+  spray = tvLp(spray, function (t) { return 2500 + 6000 * Math.exp(-t / 0.25); }, 2);
+  var fall = noise(n, r, 150, 3500, { slope: -0.8 }).mul(curve(n, [[0, 0], [0.15, 1], [0.45, 0.6], [1.0, 0.2], [1.6, 0.03], [2.0, 0]])).mul(lfo(n, r, 10, 0.4));
+  var y = hitW.add(normPk(spray).mul(0.6 * big)).add(normPk(fall).mul(0.45 * big));
+  var bb = new S(n);
+  poisson(r, 1.6, null, function (t) { return 120 * Math.exp(-t / 0.35) + 6; }, 0.03).forEach(function (t) { place(bb, bubble(r, r.uniform(500, 2600), r.uniform(0.015, 0.04), 0.3), t, r.uniform(0.15, 0.5)); });
+  y = y.add(bb.mul(0.25 * maxAbs(y) / (maxAbs(bb) + 1e-12)));
+  for (i = 0; i < 4; i++) { var tw = 0.35 + i * r.uniform(0.3, 0.45); place(y, normPk(burst(N(0.4), r, 0.22, 120, 1500, { attack: 0.05, order: 3 })).mul(0.3 * big * Math.pow(0.7, i)), tw, 1); }   /* fale o burty */
+  return outdoor(y, r, { dur: 0.8, ground: 0, rt: 0.8, tail: 0.15, echoes: [] });
+}, 2.0);
+
+/* ----- kreator v4: warsztat (hala), masywne części stalowe; bez czystych tonów i bez ucinania ----- */
+function hall(r, y, wet) { return reverb(y, makeIr(r, 0.9, 120, 6000, { pre: 0.012 }), wet === undefined ? 0.16 : wet, 1, y.length); }
+function steelSet(r, o) {                                                       /* odłożenie stalowej części: tępy stuk masy + krótki, gęsty brzęk */
+  return impact4(r, N(o.len || 0.5), { lo: o.lo || 220, hi: o.hi || 5500, count: 60, t60: o.t60 || 0.09, tc: o.tc || 0.0004, hullF: o.hullF || 110, hullT: o.hullT || 0.1,
+    hull: o.hull === undefined ? 0.35 : o.hull, thud: o.thud === undefined ? 0.9 : o.thud, bang: 0.08, tp: 0.0008, drive: 1.4, spark: 0 });
+}
+function boltTick(r) { return impact4(r, N(0.08), { lo: 1500, hi: 9000, count: 25, t60: 0.02, tc: 0.0001, hull: 0.03, thud: 0.05, bang: 0.15, spark: 0, drive: 1.2 }); }
+function placeSnd4(r, n, k) {
+  k = k || 1;
+  var y = new S(n);
+  place(y, normPk(steelSet(r, { lo: 200 * k * r.uniform(0.85, 1.2), t60: 0.08 * r.uniform(0.8, 1.3), hullF: 110 * k * r.uniform(0.9, 1.1) })), 0, 1);
+  for (var i = 0, kk = r.int(1, 3); i < kk; i++) place(y, normPk(boltTick(r)).mul(r.uniform(0.15, 0.3)), r.uniform(0.12, 0.3), 1);   /* dociągnięte śruby */
+  return hall(r, y);
+}
+function removeSnd4(r, n) {
+  var y = new S(n), t = 0.0, i;
+  for (i = 0; i < 4; i++) { place(y, normPk(boltTick(r)).mul(0.22 * r.uniform(0.7, 1)), t, 1); t += r.uniform(0.045, 0.06); }  /* grzechotka klucza */
+  var m = N(0.2), sl = lp(bp(noise(m, r), 400, 3000, 2), 3200, 2).mul(gen(m, function (tt) { return Math.pow(Math.sin(Math.PI * tt / 0.2), 1.2); })).mul(lfo(m, r, 12, 0.35));
+  place(y, normPk(sl).mul(0.3), 0.2, 1);                                                                       /* zsunięcie części */
+  place(y, normPk(steelSet(r, { lo: 280, t60: 0.06, thud: 0.6, hull: 0.25 })).mul(0.5), 0.38, 1);               /* odłożenie na bok */
+  return hall(r, y);
+}
+sfxV4('ed_place', function (c) { return placeSnd4(c.rng, c.n, [1, 1.15, 0.85][c.v]); });
+sfxV4('ed_remove', function (c) { return removeSnd4(c.rng, c.n); });
+sfxV4('ed_swap', function (c) {
+  var y = new S(c.n), rm = removeSnd4(c.rng, N(0.45));
+  place(y, rm.mul(gen(rm.length, function (t) { return Math.min(Math.max((0.42 - t) / 0.08, 0), 1); })).mul(0.8), 0, 1);
+  place(y, placeSnd4(c.rng, N(0.4)), 0.3, 1);
+  return y;
+}, 0.75);
+sfxV4('ed_armor', function (c) {
+  var n = c.n, r = c.rng, v = c.v, y = new S(n);
+  /* płyta pancerna kładziona na kadłub: krótki zgrzyt krawędzi, ciężkie uderzenie grubej stali, osiadanie */
+  var m = N(0.08), sc = lp(bp(noise(m, r), 300, 2500, 2), 2800, 2).mul(gen(m, function (t) { return Math.sin(Math.PI * t / 0.08); }));
+  place(y, normPk(sc).mul(0.15), 0, 1);
+  place(y, normPk(steelSet(r, { lo: v ? 110 : 150, hi: 4500, t60: v ? 0.22 : 0.16, tc: 0.0005, hullF: v ? 70 : 90, hullT: 0.18, hull: 0.6, thud: 1.0, len: 0.6 })), 0.06, 1);
+  place(y, normPk(steelSet(r, { lo: 200, t60: 0.05, thud: 0.6, hull: 0.2, len: 0.2 })).mul(0.25), 0.06 + r.uniform(0.07, 0.11), 1);
+  return hall(r, y, 0.2);
+}, 0.8);
+sfxV4('ed_turret', function (c) {
+  var n = c.n, r = c.rng, y = new S(n);
+  /* wieża opuszczana dźwigiem na pierścień: zgrzyt wieńca, ciężkie osadzenie, luzujący się łańcuch */
+  var m = N(0.45), gr = lp(bp(noise(m, r), 200, 1600, 2), 1800, 2).mul(gen(m, function (t) { return Math.pow(Math.sin(Math.PI * t / 0.45), 1.5); })).mul(lfo(m, r, 9, 0.4));
+  place(y, normPk(gr).mul(0.25), 0, 1);
+  place(y, normPk(steelSet(r, { lo: 90, hi: 4000, t60: 0.25, tc: 0.0007, hullF: 60, hullT: 0.25, hull: 0.8, thud: 1.0, len: 0.8 })), 0.4, 1);
+  chainRattle(r, y, 0.5, 1.1, 0.3);
+  return hall(r, y, 0.22);
+});
+function chainRattle(r, y, t0, t1, g) {                                                                        /* luźny łańcuch: grupy drobnych brzęków, zwalniające */
+  var t = t0, gap = 0.025;
+  while (t < t1) {
+    for (var q = 0, cl = r.int(2, 5); q < cl; q++) place(y, normPk(metalClink(r, { f0: 900, f1: 6000, count: 8, t60: 0.02, noise: 0.8, tonal: 0.4, gain: 1 })).mul(g * Math.exp(-(t - t0) / 0.5) * r.uniform(0.3, 1) * maxAbs(y) * 0.5), t + q * r.uniform(0.003, 0.012), 1);
+    gap = Math.min(gap * r.uniform(1.05, 1.2), 0.14); t += gap * r.uniform(0.6, 1.4);
+  }
+}
+sfxV4('ed_hull', function (c) {
+  var n = c.n, r = c.rng, y = new S(n);
+  /* kadłub opuszczony na stanowisko: bardzo ciężkie, głuche uderzenie (wiele ton stali), dudnienie podłogi hali, łańcuch */
+  place(y, normPk(steelSet(r, { lo: 70, hi: 3500, t60: 0.35, tc: 0.0009, hullF: 45, hullT: 0.4, hull: 1.0, thud: 1.2, len: 1.2 })), 0, 1);
+  place(y, normPk(burst(N(0.8), r, 0.5, 20, 90, { attack: 0.006, order: 3 })).mul(0.4), 0, 1);
+  chainRattle(r, y, 0.12, 1.3, 0.35);
+  return hall(r, y, 0.3);
+});
+sfxV4('ed_autofill', function (c) {
+  var y = new S(c.n), r = c.rng, ts = [0, 0.31, 0.62, 0.95, 1.28], ks = [1, 1.12, 0.9, 1.25, 1.06];
+  for (var i = 0; i < 5; i++) place(y, placeSnd4(r, N(0.5), ks[i]), ts[i] + (i ? c.u(-0.012, 0.012) : 0), c.u(0.8, 1));
+  return y;
+});
+sfxV4('ed_weld', function (c) {
+  var n = c.n, r = c.rng;
+  /* spawanie łukowe: gęste "smażenie" (trzaski kropel), syk łuku, słabe buczenie 100 Hz; łagodne zapalenie i zgaśnięcie */
+  var gb = grainBank(r, 20, 1200, 9000, 0.0025, 0.0002), cr = new S(n);
+  var dens = lfo(n, r, 3, 0.6);
+  poisson(r, c.dur, 700).forEach(function (t) { if (r.next() < dens[Math.min(n - 1, Math.round(t * SR))] / 1.6) place(cr, gb[r.int(0, 20)], t, Math.pow(r.next(), 2)); });
+  var hiss = noise(n, r, 2500, 10000, { slope: -0.5 }).mul(lfo(n, r, 8, 0.3));
+  var hum = additive(constF(n, 100), [1, 0.5, 0.35, 0.2]).mul(lfo(n, r, 4, 0.2));
+  var e = gen(n, function (t) { return Math.min(t / 0.04, 1) * Math.min(Math.max((1.12 - t) / 0.15, 0), 1); });
+  var y = normRms(cr).mul(0.6).add(normRms(hiss).mul(0.3)).add(normRms(hum).mul(0.03)).mul(e);
+  place(y, normPk(burst(N(0.05), r, 0.015, 800, 8000, { attack: 0.0005 })).mul(maxAbs(y) * 0.6), 0, 1);       /* zapalenie łuku */
+  return hall(r, y, 0.1);
+});
+sfxV4('ed_rivet', function (c) {
+  var n = c.n, r = c.rng, y = new S(n), K = r.int(13, 17), t = 0, ps = plateSet(r, 450, 6000, 40, 0.05);
+  /* młotek pneumatyczny: seria ciężkich uderzeń w tę samą blachę (te same mody), syk wydechu powietrza */
+  for (var i = 0; i < K; i++) {
+    var a = (i === 0 ? 1 : 0.75 + 0.25 * r.next()), hn = N(0.08), ex = fit(burst(N(0.004), r, 0.0008, 300, 8000, { attack: 0.0001 }), hn);
+    var hit = normPk(modeBank(ex, ps.f.map(function (f) { return f * (1 + r.uniform(-0.004, 0.004)); }), ps.t, ps.g)).add(normPk(burst(hn, r, 0.02, 60, 500, { attack: 0.001 })).mul(0.4));
+    place(y, hit, t, a);
+    place(y, normPk(burst(N(0.05), r, 0.025, 2500, 9000, { attack: 0.004 })).mul(0.12), t + 0.006, a);
+    t += 0.0605 * (i < 3 ? (1.25 - 0.08 * i) : 1) * r.uniform(0.93, 1.07);
+  }
+  return hall(r, y, 0.18);
+});
+sfxV4('ed_stage_done', function (c) {
+  var n = c.n, r = c.rng, y = new S(n);
+  /* etap gotowy: krótki syk zaworu pneumatycznego i solidne zatrzaśnięcie */
+  var m = N(0.12), hs = noise(m, r, 1500, 9000, { slope: -0.5 }).mul(gen(m, function (t) { return Math.min(t / 0.005, 1) * Math.exp(-t / 0.04); }));
+  place(y, normPk(hs).mul(0.35), 0, 1);
+  place(y, normPk(steelSet(r, { lo: 260, t60: 0.07, thud: 0.9, hull: 0.3, len: 0.3 })), 0.06, 1);
+  place(y, normPk(boltTick(r)).mul(0.3), 0.06 + r.uniform(0.05, 0.07), 1);
+  return hall(r, y, 0.15);
+});
+sfxV4('ed_undo', function (c) {
+  var n = c.n, r = c.rng;
+  /* cofnięcie: miękki, krótki "szuch" (zsunięcie arkusza) zamiast brzęczącego szumu */
+  var y = noise(n, r, 300, 6000, { slope: -0.7 }).mul(gen(n, function (t) { return Math.pow(Math.sin(Math.PI * Math.min(t / 0.17, 1)), 2); }));
+  return tvBp(y, function (t) { return 2500 - 9000 * t; }, 1.4);
+});
+
+/* ----- interfejs i biuro v4: prawdziwe przedmioty (drewno biurka, bakelit, papier, mechanizmy); bez sinusów-"pików" i bez ucinania ----- */
+/* stuknięcie w drewno: krótko tłumione, gęste mody deski (stała gęstość) + miękki kontakt */
+function woodKnock(r, f0, t60, n) {
+  n = n || N(Math.max(0.08, t60 * 3));
+  var ps = plateSet(r, f0, f0 * 9, 30, t60, { tilt: 0.55, dk: 0.6 }), ex = fit(burst(N(0.006), r, 0.0012, 100, 6000, { attack: 0.0002 }), n);
+  return normPk(modeBank(ex, ps.f, ps.t, ps.g).add(lp(ex, 2500, 2).mul(0.4)));
+}
+/* "gładkie" wyciszenie końca (zamiast twardego cięcia) */
+function fadeTail(x, t1, d) { return x.mul(gen(x.length, function (t) { return t < t1 ? 1 : Math.max(0, Math.cos(Math.PI / 2 * Math.min((t - t1) / d, 1))); })); }
+sfxV4('ui_click', function (c) {
+  var n = c.n, r = c.rng, v = c.v;
+  /* bakelitowy przełącznik: dwa szybkie kontakty (sprężyna przeskakuje) w małej obudowie */
+  var ps = plateSet(r, 1800, 9000, 25, 0.008, { tilt: 0.3, dk: 0.5 }), ex = new S(n);
+  addAt(ex, burst(N(0.003), r, 0.0005, 800, 12000, { attack: 0.00005 }), 0, 1, false);
+  addAt(ex, burst(N(0.003), r, 0.0005, 800, 12000, { attack: 0.00005 }), Math.round((v ? 0.004 : 0.006) * SR), 0.5, false);
+  return normPk(modeBank(ex, ps.f, ps.t, ps.g)).add(woodKnock(r, v ? 600 : 500, 0.012, n).mul(0.35));
+});
+sfxV4('ui_slider', function (c) {
+  var n = c.n, r = c.rng, ps = plateSet(r, 2500, 10000, 15, 0.004, { tilt: 0.3 });
+  return normPk(modeBank(fit(burst(N(0.002), r, 0.0004, 1000, 12000, { attack: 0.00005 }), n), ps.f, ps.t, ps.g));   /* zapadka: drobny, suchy tik */
+});
+sfxV4('ui_tab', function (c) {
+  var n = c.n, r = c.rng, up = c.v === 0;
+  var y = fadeTail(paper(r, n, 1200, 7000, 0.02, 0.2, 0.3, [[0, up ? 2500 : 5000], [0.2, up ? 5000 : 2500]]), 0.17, 0.04);
+  place(y, woodKnock(r, c.u(380, 460), 0.02).mul(0.35 * maxAbs(y)), 0.19, 1);
+  return y;
+});
+sfxV4('ui_error', function (c) {
+  var y = new S(c.n), r = c.rng;
+  place(y, woodKnock(r, c.u(240, 280), 0.04), 0, 1); place(y, woodKnock(r, c.u(200, 230), 0.04), 0.12, 0.85);      /* dwa stuknięcia w biurko */
+  return y;
+});
+sfxV4('ui_modal', function (c) {
+  var n = c.n, r = c.rng, m = N(0.3);
+  var x = tvBp(noise(m, r, 1500, 8000, { slope: -0.5 }), function (t) { return interp(t, [0, 0.3], [2500, 6000]); }, 2);
+  x = x.mul(gen(m, function (t) { return Math.pow(Math.min(t / 0.25, 1), 2) * Math.max(0, Math.cos(Math.PI / 2 * Math.min(Math.max(t - 0.24, 0) / 0.05, 1))); }));
+  var y = new S(n); place(y, normPk(x), 0, 1); place(y, woodKnock(r, 360, 0.025).mul(0.35), 0.26, 1);
+  return y;
+});
+sfxV4('ui_expand', function (c) {
+  var n = c.n, r = c.rng, y = normPk(paper(r, n, 1000, 6000, 0.004, 0.08, 0.3));
+  place(y, woodKnock(r, c.u(380, 440), 0.02).mul(0.4), 0.075, 1);
+  return y;
+});
+sfxV4('ui_drawer', function (c) {
+  var n = c.n, r = c.rng;
+  /* drewniana szuflada: tarcie drewna o drewno (miękki szum, wolne nierówności), stuk o ogranicznik */
+  var e = gen(n, function (t) { return Math.pow(Math.min(t / 0.04, 1), 1.5) * Math.max(0, Math.cos(Math.PI / 2 * Math.min(Math.max(t - 0.27, 0) / 0.05, 1))); });
+  var fr = lp(bp(noise(n, r), 250, 2500, 2), 3000, 2).mul(lfo(n, r, 9, 0.35)).mul(e);
+  var ps = plateSet(r, 180, 1500, 20, 0.04, { tilt: 0.5, dk: 0.5 }), body = modeBank(fr, ps.f, ps.t, ps.g);      /* pudło szuflady rezonuje */
+  var y = normPk(fr).mul(0.7).add(normPk(body).mul(0.4));
+  place(y, woodKnock(r, 220, 0.05), 0.31, 0.8);
+  return y;
+});
+sfxV4('research_start', function (c) {
+  var n = c.n, r = c.rng, y = new S(n), t = 0.02, i;
+  /* zakładanie kartki do maszyny: zapadka wałka (miarowe tiki), szelest wsuwanego papieru */
+  for (i = 0; i < 7; i++) { place(y, normPk(modeBank(fit(burst(N(0.002), r, 0.0005, 1000, 9000), N(0.05)), [2900, 4300, 6100].map(function (f) { return f * r.uniform(0.97, 1.03); }), [0.01, 0.008, 0.006], [1, 0.6, 0.4])).mul(0.5), t, 1); t += r.uniform(0.045, 0.055); }
+  var pp = fadeTail(paper(r, N(0.4), 1200, 7000, 0.03, 0.4, 0.5), 0.3, 0.08);
+  place(y, normPk(pp).mul(0.6), 0.05, 1);
+  return y;
+});
+sfxV4('deadline', function (c) {
+  var n = c.n, r = c.rng, y = new S(n);
+  /* zegar: "tik-tak" wychwytu (dwa różne metaliczne tiki) wzmacniane drewnianą obudową; ostatni głośniejszy */
+  var tick = function (hi, a) {
+    var m = N(0.12), ex = fit(burst(N(0.002), r, 0.0004, 1500, 12000, { attack: 0.00005 }), m);
+    var met = modeBank(ex, [hi, hi * 1.47, hi * 2.13].map(function (f) { return f * r.uniform(0.99, 1.01); }), [0.02, 0.015, 0.01], [1, 0.6, 0.4]);
+    return normPk(met).add(woodKnock(r, 300, 0.05, m).mul(0.5)).mul(a);
+  };
+  [0, 0.3, 0.6, 0.9].forEach(function (t, i) { place(y, tick(i % 2 ? 2600 : 3100, i === 3 ? 1 : 0.7), t, 1); });
+  return y;
+});
+sfxV4('trial_start', function (c) {
+  var n = c.n, r = c.rng;
+  /* gwizdek z kulką: ton ~2,8 kHz z szybkim, nieregularnym trelem (kulka przerywa strumień) i szumem oddechu */
+  var tr = lfo(n, r, 45, 0.6), vf = c.u(28, 38);
+  var f = gen(n, function (t) { return 2800 * (1 + 0.025 * Math.sin(TAU * vf * t)); });
+  var tone = sineSweep(f).add(sineSweep(f.mul(2)).mul(0.15)).mul(gen(n, function (t, k) { return 0.55 + 0.45 * Math.sin(TAU * vf * t); })).mul(tr);
+  var br = bp(noise(n, r), 1500, 6000, 2).mul(0.25);
+  var e = gen(n, function (t) { return Math.min(t / 0.02, 1) * Math.max(0, Math.cos(Math.PI / 2 * Math.min(Math.max(t - 0.38, 0) / 0.15, 1))); });
+  return normRms(tone).add(normRms(br).mul(0.35)).mul(e);
+});
+
+/* ----- tła i wojna v4 ----- */
+/* oddalenie: pochłanianie powietrza (im dalej, tym ciemniej), dłuższy, ciemny ogon terenu w stereo */
+function distant(r, x, lpHz, rt) {
+  var y = lp(lp(x, lpHz, 2), lpHz * 1.6, 2), n = y.length + N(rt * 1.2);
+  var ir = makeIr(r, rt, 50, Math.min(lpHz * 1.2, 3000), { stereo: true, pre: 0.06, bloom: 0.02 });
+  return [0, 1].map(function (ch) { return reverb(fit(y, n), ir[ch], 0.55, 1.0, n); });                    /* ostry początek, długi ogon */
+}
+function placeSt(dst, st, t, gain, panP) {                                       /* stereo z panoramą, z zawijaniem w pętli */
+  var c = Math.cos((panP + 1) * Math.PI / 4), s = Math.sin((panP + 1) * Math.PI / 4);
+  placeCirc(dst[0], st[0], t, gain * c * 1.41); placeCirc(dst[1], st[1], t, gain * s * 1.41);
+}
+sfxV4('amb_battle', function (c) {
+  var n = c.n, r = c.rng, D = c.dur, y = stereoZeros(n), i, k;
+  /* odległa artyleria: wybuchy (szablony) przyciemnione odległością, długie toczące się ogony */
+  var boom = [];
+  for (i = 0; i < 3; i++) boom.push(explosion4(r, N(2.2), { size: r.uniform(1.0, 2.0), debris: 0, dry: true }));
+  for (i = 0; i < 9; i++) (function (t) {
+    var d = r.uniform(0, 1), st = distant(r, boom[r.int(0, 3)], 350 + 900 * (1 - d), 2.5 + 1.5 * d);
+    placeSt(y, st, t, Math.pow(10, -(2 + 12 * d) / 20), r.uniform(-0.9, 0.9));
+  })((i + r.uniform(0.1, 0.9)) * D / 9);                                                                  /* rozłożone w czasie (bez skupisk i dziur) */
+  /* wystrzały własnej artylerii/czołgów w średniej odległości: ostrzejsze */
+  var gun = gunshot4(r, N(1.2), { cal: 0.8, crack: 0.3, env: { tail: 0, echoes: [], ground: 0.4 } });
+  [0.15, 0.4, 0.62, 0.88].map(function (q) { return (q + r.uniform(-0.08, 0.08)) * D; }).forEach(function (t) { placeSt(y, distant(r, gun, r.uniform(1200, 2200), 2.2), t, Math.pow(10, -r.uniform(4, 10) / 20), r.uniform(-0.8, 0.8)); });
+  /* serie karabinów maszynowych: różne tempa (MG42 ~20/s, inne ~9/s), rozproszone w panoramie */
+  var mg = []; for (i = 0; i < 4; i++) mg.push(gunshot4(r, N(0.25), { cal: 0.08, peak: 2000, crack: 0.6, env: { tail: 0, echoes: [], ground: 0.4 } }));
+  for (i = 0; i < 7; i++) {
+    var rate = r.next() < 0.5 ? r.uniform(18, 21) : r.uniform(8, 10), cnt = r.int(5, 22), seq = new S(N(cnt / rate + 0.3));
+    for (k = 0; k < cnt; k++) place(seq, mg[r.int(0, 4)], 0.01 + k / rate + r.normal() * 0.004, r.uniform(0.6, 1));
+    var dd = r.uniform(0, 1);
+    placeSt(y, distant(r, seq, 1800 + 2500 * (1 - dd), 1.2 + dd), r.uniform(0, D), Math.pow(10, -(18 + 12 * dd) / 20), r.uniform(-1, 1));
+  }
+  /* pojedyncze strzały karabinowe */
+  for (i = 0; i < 10; i++) placeSt(y, distant(r, mg[r.int(0, 4)], r.uniform(2000, 4000), 1.0), r.uniform(0, D), Math.pow(10, -r.uniform(18, 28) / 20), r.uniform(-1, 1));
+  /* pomruk frontu i wiatr */
+  for (var ch = 0; ch < 2; ch++) {
+    y[ch] = y[ch].add(noise(n, r, 25, 180, { slope: -1.5, order: 3 }).mul(lfo(n, r, 0.3, 0.5)).mul(0.02))
+      .add(lp(noise(n, r, 120, 900, { slope: -1 }), 1200, 2, true).mul(lfo(n, r, 0.2, 0.7)).mul(0.012));
+  }
+  return y;
+});
+sfxV4('war_start', function (c) {
+  var n = c.n, r = c.rng;
+  /* syrena alarmowa: wirnik "sieka" powietrze (ton z harmonicznymi + szum), wznosi się; z daleka; w tle odległe wybuchy */
+  var f = gen(n, function (t) { return interp(t, [0, 2.4, 3], [180, 620, 600]); }), ph = phaseOf(f), y = new S(n), i;
+  for (i = 0; i < n; i++) { var s = 0; for (var k = 1; k <= 8; k++) s += Math.sin(k * ph[i] + k * 0.7) / Math.pow(k, 1.1); y[i] = s; }
+  y = lp(y, 2500, 2).add(lp(bp(noise(n, r), 300, 3000, 2), 3000, 2).mul(0.15)).mul(lfo(n, r, 3, 0.08));
+  y = y.mul(gen(n, function (t) { return Math.min(t / 0.6, 1) * Math.max(0, Math.cos(Math.PI / 2 * Math.min(Math.max(t - 2.5, 0) / 0.5, 1))); }));
+  y = outdoor(normPk(y), r, { dur: 1.5, ground: 0.3, rt: 1.6, tail: 0.5, echoes: [[0.35, 0.25, 1500], [0.8, 0.15, 1000]] });
+  [[1.2, 0.5], [2.0, 0.4], [2.6, 0.55]].forEach(function (e) {
+    var ex = lp(explosion4(r, N(1.4), { size: 1.5, debris: 0, dry: true }), 700, 2);
+    place(y, ex.mul(e[1] / (maxAbs(ex) + 1e-12)), e[0], 1);
+  });
+  return y;
+});
 </script>
 <script>
 (function () {
