@@ -4527,6 +4527,39 @@ sfxV4('amb_office', function (c) {
   for (i = 0; i < 7; i++) placeVerb(y, normPk(fadeTail(paper(r, N(0.5), 800, 6000, 0.03, 0.4, 0.5), 0.35, 0.1)).mul(0.02), ir, r.uniform(0, D), 1);   /* kartki */
   return y;
 });
+
+/* ----- nowe silniki v4: V8 i V12, benzyna i diesel (ten sam model co pozostałe silniki v4) ----- */
+Object.assign(ENG4, {
+  /* V8 benzyna, cross-plane (np. Ford GAA): nierówne grupy zapłonów w rzędach = "bulgotanie", głęboki wydech */
+  v8p: { cyl: 8, bank: [0, 1, 0, 1, 1, 0, 1, 0], rpm: [560, 1500, 2700], pipeF: [[29, 32], [29, 32], [29, 32]], fb: [.34, .32, .3], damp: [.45, .35, .28],
+    pulseT: [.0036, .0028, .0021], pulseLp: [1200, 2100, 3300], muff: [2000, 3000, 4400], chamber: [190, 240, 300],
+    knock: [.12, .14, .16], blockLo: 450, blockHi: 3600, blockT: .03, valve: [.1, .11, .12], intake: [.08, .13, .24], fan: [.03, .06, .1], gear: [0, .012, .03],
+    ccv: [.24, .1, .06], miss: [.03, 0, 0], tjit: [.05, .02, .01], wob: [.07, .03, .015], drive: [1.7, 1.9, 2.2], out: [8000, 10000, 12000], cylVar: .14 },
+  /* V8 diesel: bulgotanie cross-plane + twardy stuk spalania; niskie obroty, bardziej nierówny niż V12 */
+  v8d: { cyl: 8, bank: [0, 1, 0, 1, 1, 0, 1, 0], rpm: [480, 1200, 2000], pipeF: [[30, 33], [30, 33], [30, 33]], fb: [.3, .29, .27], damp: [.5, .4, .32],
+    pulseT: [.0031, .0025, .002], pulseLp: [1400, 2100, 2900], muff: [1800, 2800, 4200], chamber: [170, 210, 250],
+    knock: [.34, .38, .42], blockLo: 650, blockHi: 3000, blockT: .045, valve: [.09, .1, .11], intake: [.05, .1, .18], fan: [.04, .08, .14], gear: [0, .015, .035],
+    ccv: [.18, .09, .05], miss: [0, 0, 0], tjit: [.045, .02, .01], wob: [.06, .028, .014], drive: [1.9, 2.1, 2.4], out: [10000, 12000, 14000], cylVar: .12 },
+  /* V12 benzyna (np. Maybach HL230): równe zapłony naprzemiennie w rzędach - gładki, wyższy, mocne wentylatory */
+  v12p: { cyl: 12, bank: [0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1], rpm: [600, 1700, 3000], pipeF: [[38, 41], [38, 41], [38, 41]], fb: [.26, .25, .24], damp: [.45, .35, .28],
+    pulseT: [.003, .0023, .0017], pulseLp: [1500, 2500, 3800], muff: [2600, 3600, 5000], chamber: [230, 290, 350],
+    knock: [.08, .1, .12], blockLo: 600, blockHi: 4200, blockT: .025, valve: [.08, .09, .1], intake: [.1, .18, .3], fan: [.06, .12, .22], gear: [0, .015, .04],
+    ccv: [.15, .07, .04], miss: [0, 0, 0], tjit: [.035, .015, .008], wob: [.05, .022, .011], drive: [1.5, 1.7, 2.0], out: [9000, 11000, 13000], cylVar: .08 },
+  /* V12 diesel (np. W-2): aluminiowy blok - więcej klekotu, głośny wlot i wentylator */
+  v12d: { cyl: 12, bank: [0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1], rpm: [600, 1400, 2000], pipeF: [[35, 38], [35, 38], [35, 38]], fb: [.28, .27, .26], damp: [.5, .4, .32],
+    pulseT: [.0029, .0023, .0018], pulseLp: [1500, 2300, 3100], muff: [2000, 3000, 4500], chamber: [180, 220, 260],
+    knock: [.36, .4, .44], blockLo: 750, blockHi: 3000, blockT: .04, valve: [.12, .13, .14], intake: [.08, .14, .24], fan: [.06, .12, .2], gear: [0, .02, .04],
+    ccv: [.14, .07, .04], miss: [0, 0, 0], tjit: [.04, .018, .01], wob: [.06, .028, .014], drive: [1.8, 2.0, 2.3], out: [10000, 12000, 14000], cylVar: .1 }
+});
+var newEngN = 0;
+[['v8_petrol', 'v8p', 'P1'], ['v8_diesel', 'v8d', 'P1'], ['v12_petrol', 'v12p', 'P1'], ['v12_diesel', 'v12d', 'P1']].forEach(function (d) {
+  var f = function (c) { var p = eng4P(d[1], c.lvl), ev = fireGrid4(c.rng, p, c.dur); return engineCore4(c.rng, c.n, ev, p, true); };
+  var s = sfx('eng_' + d[0], 4.0, { prio: d[2], group: ENG, loop: true, subs: ['idle', 'mid', 'high'], onset: 'soft' }, f);
+  s.fn4 = f; s.v4only = true; V4_IDS.push(s.id);
+  REG.splice(REG.indexOf(s), 1);                                                                                   /* na liście: zaraz po pozostałych silnikach */
+  var at = REG.map(function (x) { return x.id; }).indexOf('eng_turbine');
+  REG.splice(at + 1 + (newEngN++), 0, s);
+});
 </script>
 <script>
 (function () {
@@ -4652,6 +4685,7 @@ sfxV4('amb_office', function (c) {
     if (s.loop) tags += '<span class="tag L">pętla</span>';
     if (s.fn2) tags += '<span class="tag V2" title="Ten dźwięk ma ulepszoną wersję">' + (s.v3 ? 'v3' : 'v2') + '</span>';
     if (s.v4) tags += '<span class="tag V4" title="Realistyczna wersja v4">v4</span>';
+    if (s.v4only) tags += '<span class="tag V4" title="Nowy dźwięk, tylko w v4 (w starszych wersjach brzmi tak samo)">nowy</span>';
     el.innerHTML = '<div class="nm">' + r.key + tags + '<small>' + s.dur + ' s' + (s.dur4 ? ' (v4: ' + s.dur4 + ' s)' : '') + ' · ' + (s.stereo ? 'stereo' : 'mono') + ' · ' + s.var + ' war.</small></div><div class="vars"></div><div class="act"></div>';
     var vars = el.querySelector('.vars');
     for (var v = 0; v < s.var; v++) {
@@ -4667,7 +4701,7 @@ sfxV4('amb_office', function (c) {
     dice.onclick = function () { r.seed = Math.floor(Math.random() * 1e6); r.vars.forEach(function (x, i) { drawEmpty(x); }); playVar(r, 0); };
     var dl = document.createElement('button'); dl.textContent = '⭳'; dl.title = 'Pobierz pliki tego dźwięku';
     dl.onclick = function () { downloadRow(r, dl); };
-    if (s.fn2 || s.v4) {
+    if (s.fn2 || (s.v4 && !s.v4only)) {
       var ab = document.createElement('button'); ab.textContent = 'A/B'; ab.title = 'Odtwórz po kolei poprzednią (A) i nowszą (B) wersję: ' + abPair(s).join(' → ');
       ab.onclick = function () { abPlay(r, ab); }; act.appendChild(ab);
     }

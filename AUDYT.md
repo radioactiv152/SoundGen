@@ -254,3 +254,19 @@ Zmiany:
 - `hit_he`, `hit_heat`: warstwa stali krótka (0,08–0,09 s), bez „garnka”. `hit_spall`, `hit_rivets`, `hit_module`:
   usunięte rezonanse pustego kadłuba (`hullBox`). Plener trafień: odbicia ~3× słabsze.
 - Wystające piki w trafieniach: 10–16 dB (poziom szumu), szorstkość 1,8–3,2 dB. Silniki bez zmian.
+
+## Runda 8: nowe silniki V8 i V12 (benzyna, diesel)
+
+Cztery nowe pętle (idle / mid / high, po 4 s) na tym samym modelu co pozostałe silniki v4 (`engineCore4`):
+
+| id | charakter | obroty (idle/mid/high) |
+|---|---|---|
+| `eng_v8_petrol` | V8 cross-plane (np. Ford GAA): nierówne grupy zapłonów w rzędach = bulgotanie, głęboki wydech | 560 / 1500 / 2700 |
+| `eng_v8_diesel` | V8 cross-plane + stuk spalania diesla, bardziej nierówny niż V12 | 480 / 1200 / 2000 |
+| `eng_v12_petrol` | V12 (np. Maybach HL230): równe zapłony naprzemiennie w rzędach, gładki, mocne wentylatory | 600 / 1700 / 3000 |
+| `eng_v12_diesel` | V12 diesel (np. W-2): aluminiowy blok, więcej klekotu, głośny wlot i wentylator | 600 / 1400 / 2000 |
+
+Każdy ma własne, stałe cechy cylindrów, inne długości rur w rzędach i inne rezonanse bloku. Bilans pasm na
+jałowym jest zbliżony do nagrań referencyjnych (czołg z II wojny, diesel V12). Bez trzasków, szwy pętli czyste.
+Na liście są zaraz za pozostałymi pętlami silników, z oznaczeniem „nowy” (bez A/B, bo nie mają starszej wersji).
+Dotychczasowe silniki bez zmian.
