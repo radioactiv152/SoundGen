@@ -27,21 +27,33 @@ tryb bez workerów, mastering do LUFS z limiterem, a najdłuższe zadania ekspor
    pełny PCM (w trybie WAV dotyczyło to każdego pliku). Poprawka: kanały trafiają tylko do zwracanej kopii.
 3. **Manifest** zapisywał `duration` ze specyfikacji, nawet gdy wersja ma inną długość. Teraz bierze długość
    wersji v4.
+4. **A/B nie działał na pętlach.** `abPlay` wywoływał `src.stop()` przed `src.start()`, przez co przy każdym
+   dźwięku zapętlonym (silniki, gąsienice, otoczenie) wyskakiwał błąd zamiast porównania. Poprawione.
+5. **Trzaski w silnikach v4** („strzelanie oscylatora”). Zmierzone detektorem kliknięć: skoki w paśmie
+   >4 kHz ponad 5× RMS otoczenia, 40–120 na sekundę, w rytmie zapłonów. Źródła:
+   - ucięty kernel impulsu wydechu (skok sygnału po 20 ms),
+   - natychmiastowe narastanie impulsu (0,25 ms),
+   - surowe ziarno stuku spalania dodawane bez filtru, i to samo ziarno wzbudzające mody bloku bez ataku,
+   - zbyt ostre ziarna zaworów, grzechotu i łańcuchów (WW1).
+
+   Poprawka: kernel 40+ ms z łagodnym wygaszeniem, narastanie ~1 ms, zdarzenia mechaniczne z atakiem 2–4 ms
+   i obcięte powyżej ~3,5 kHz. Wynik: 0–3 kliknięć/s (pozostałe to celowe pojedyncze stuki,
+   np. metaliczny stuk w `eng_stall`).
 
 ### Architektura i utrzymanie (opisane, nie zmieniane)
 
-4. **„Poprzednie (v2)” nie jest historyczną v2.** `sfxV2()` wywołano dwa razy dla tych samych id
+6. **„Poprzednie (v2)” nie jest historyczną v2.** `sfxV2()` wywołano dwa razy dla tych samych id
    (np. `mg_shot`, `cannon_*_fire`, `hit_*`, `cookoff`, silniki): druga rejestracja nadpisuje `fn2`.
    W efekcie opcja v2 renderuje funkcje z sekcji „v3” z wyłączonymi gałęziami `RV === 'v3'`, a `gunV2()`
    i pierwsze definicje trafień to martwy kod. Etykiety v2/v3 i przycisk A/B sugerują coś innego, niż słychać.
-5. **Wersjonowanie przez globalną zmienną `RV`**, sprawdzaną głęboko we współdzielonych helperach
+7. **Wersjonowanie przez globalną zmienną `RV`**, sprawdzaną głęboko we współdzielonych helperach
    (`plateModes`, `plateHit`, `blast2`, `petrolV8P`, `eng_ww1`…). To kruche: zmiana helpera „dla v3” po cichu
    zmienia inne dźwięki. v4 omija to celowo: ma osobne funkcje i własny rejestr (`fn4`, `dur4`), a dźwięki
    bez v4 renderują się dokładnie jak v3.
-6. **Nakładające się warstwy.** v1, v2 i v3 żyją obok siebie (≈1300 linii, z czego część martwa). Jeśli
+8. **Nakładające się warstwy.** v1, v2 i v3 żyją obok siebie (≈1300 linii, z czego część martwa). Jeśli
    starsze wersje nie są już potrzebne do porównań, warto je usunąć.
-7. `markV3()` działa tylko w wątku głównym. Workery go nie potrzebują, ale to pułapka przy rozbudowie.
-8. `window.__cancel` jest globalną flagą. Anulowanie eksportu (`cancelAll`) przerywa też trwający odsłuch.
+9. `markV3()` działa tylko w wątku głównym. Workery go nie potrzebują, ale to pułapka przy rozbudowie.
+10. `window.__cancel` jest globalną flagą. Anulowanie eksportu (`cancelAll`) przerywa też trwający odsłuch.
 
 ### Brzmienie (powód przeróbek)
 

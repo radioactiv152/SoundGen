@@ -3333,7 +3333,7 @@ var ENG4 = {
   /* V12 diesel (np. W-2): twardy stuk spalania pobudza blok - "klekot" 1-4 kHz */
   diesel: { cyl: 12, bank: [0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1], rpm: [520, 1150, 1800], pipeF: [[33, 36], [33, 36], [33, 36]], fb: [.3, .28, .26], damp: [.5, .4, .32],
     pulseT: [.003, .0024, .0019], pulseLp: [1300, 2000, 2800], muff: [1800, 2800, 4200], chamber: [170, 210, 250],
-    knock: [.5, .55, .6], blockLo: 700, blockHi: 4200, blockT: .045, valve: [.08, .09, .1], intake: [.05, .1, .18], fan: [.04, .08, .14], gear: [0, .015, .035],
+    knock: [.38, .42, .46], blockLo: 600, blockHi: 3200, blockT: .045, valve: [.08, .09, .1], intake: [.05, .1, .18], fan: [.04, .08, .14], gear: [0, .015, .035],
     ccv: [.16, .08, .05], miss: [0, 0, 0], tjit: [.04, .018, .01], wob: [.06, .028, .014], drive: [1.8, 2, 2.3], out: [10000, 12000, 14000], cylVar: .1 },
   /* rzędowa czwórka lekkiego pojazdu */
   small: { cyl: 4, bank: [0, 0, 0, 0], rpm: [750, 2000, 3300], pipeF: [[61], [61], [61]], fb: [.32, .3, .28], damp: [.4, .32, .25],
@@ -3348,8 +3348,8 @@ var ENG4 = {
   /* WW1: wolnoobrotowa szóstka o wielkiej pojemności, otwarty wydech, łańcuchy */
   ww1: { cyl: 6, bank: [0, 0, 0, 0, 0, 0], rpm: [380, 800, 1200], pipeF: [[27], [27], [27]], fb: [.35, .32, .3], damp: [.55, .45, .38],
     pulseT: [.0045, .0035, .0028], pulseLp: [600, 1000, 1500], muff: [1200, 1800, 2600], chamber: [140, 170, 200],
-    knock: [.12, .14, .16], blockLo: 400, blockHi: 2800, blockT: .05, valve: [.22, .24, .26], intake: [.05, .08, .12], fan: [0, 0, 0], gear: [.01, .02, .03],
-    ccv: [.27, .15, .1], miss: [.05, .01, 0], tjit: [.06, .035, .02], wob: [.08, .04, .02], drive: [1.5, 1.7, 1.9], out: [4500, 5500, 6500], cylVar: .18, rattle: [.35, .3, .25], chain: [.3, .35, .4] }
+    knock: [.12, .14, .16], blockLo: 400, blockHi: 2800, blockT: .05, valve: [.13, .14, .15], intake: [.05, .08, .12], fan: [0, 0, 0], gear: [.01, .02, .03],
+    ccv: [.27, .15, .1], miss: [.05, .01, 0], tjit: [.06, .035, .02], wob: [.08, .04, .02], drive: [1.5, 1.7, 1.9], out: [4500, 5500, 6500], cylVar: .18, rattle: [.3, .26, .22], chain: [.2, .22, .25] }
 };
 function eng4P(kind, lvl) {
   var d = ENG4[kind], p = { kind: kind, lvl: lvl };
@@ -3385,9 +3385,11 @@ function engineCore4(r, n, ev, p, circ) {
   /* impuls wydechu: szybkie narastanie, zanik, lekkie podciśnienie; każdy cylinder ma trochę inną barwę */
   var kern = [];
   for (k = 0; k < cyl; k++) {
-    var Lk = N(0.02), T = p.pulseT * ev.col[k];
-    var hk = gen(Lk, function (t) { return (1 - Math.exp(-t / 0.00025)) * (Math.exp(-t / T) - 0.35 * Math.exp(-t / (T * 2.6))); });
-    hk = hk.add(noise(Lk, r, 200, 6000).mul(dec(Lk, T * 2.5)).mul(0.12));                                       /* turbulencja wylotu */
+    var T = p.pulseT * ev.col[k], Lk = N(Math.max(0.04, T * 14)), tl = Lk / SR;
+    /* narastanie ~1 ms (impuls ciśnienia na wylocie rury nie jest skokiem) i łagodne wygaszenie końca kernela:
+     * ucięty kernel dawał skok sygnału przy każdym zapłonie, słyszalny jako trzask */
+    var hk = gen(Lk, function (t) { var a = 1 - Math.exp(-t / 0.0007); return a * a * (Math.exp(-t / T) - 0.35 * Math.exp(-t / (T * 2.6))) * (t > 0.6 * tl ? 0.5 + 0.5 * Math.cos(Math.PI * (t - 0.6 * tl) / (0.4 * tl)) : 1); });
+    hk = hk.add(noise(Lk, r, 200, 4500).mul(gen(Lk, function (t) { return Math.min(t / 0.0015, 1) * Math.exp(-t / (T * 2.5)); })).mul(0.12));   /* turbulencja wylotu */
     kern.push(lp(hk, p.pulseLp * ev.col[k], 2));
   }
   var trains = [];
@@ -3413,13 +3415,13 @@ function engineCore4(r, n, ev, p, circ) {
   var envF = lp(all.map(Math.abs), 70, 1, circ), me = 0; for (i = 0; i < m; i++) me += envF[i]; me /= m;
   var pulseEnv = new Float64Array(m); for (i = 0; i < m; i++) pulseEnv[i] = Math.min(2.2, envF[i] / (me + 1e-12));
   /* stuk spalania przenoszony przez blok: każdy zapłon pobudza gęsty bank modów bloku */
-  var kexc = new S(m), kb = grainBank(r, 8, 400, 9000, 0.0015, 0.0001);
+  var kexc = new S(m), kb = grainBank(r, 8, 300, 3200, 0.004, 0.002);
   idx.forEach(function (x, q) { addAt(kexc, kb[r.int(0, 8)], x + Math.round(r.uniform(0.0005, 0.002) * SR), ev.a[q] * Math.exp(0.35 * r.normal()), circ); });
   var bs = plateSet(new RNG(crc32(utf8('blk:' + p.kind)), 3), p.blockLo, p.blockHi, 40, p.blockT, { tilt: 0.2, dk: 0.4 });
   var block = modeBank(kexc, bs.f, bs.t, bs.g, circ);
-  block = block.mul(1 / stdOf(block)).add(hp(kexc, 2500, 2, circ).mul(0.25 / stdOf(kexc)));
+  block = lp(block, 3500, 2, circ); block = block.mul(1 / stdOf(block));                                                                         /* tylko odpowiedź bloku - surowe ziarno było trzaskiem */
   /* rozrząd: stuki zaworów (dwa zdarzenia na cylinder na cykl) */
-  var vb = grainBank(r, 10, 1500, 7000, 0.0025), vv = new S(m);
+  var vb = grainBank(r, 10, 1000, 3500, 0.006, 0.002), vv = new S(m);
   idx.forEach(function (x, q) {
     for (var j = 0; j < 2; j++) addAt(vv, vb[r.int(0, 10)], x + Math.round((ev.P * cyl * (0.18 + 0.27 * j) + r.uniform(-0.002, 0.002)) * SR), r.uniform(0.5, 1), circ);
   });
@@ -3429,13 +3431,13 @@ function engineCore4(r, n, ev, p, circ) {
   var y = exh.add(block.mul(p.knock)).add(vv.mul(p.valve / (stdOf(vv) + 1e-12) * 0.25)).add(air.mul(p.intake));
   /* luzy: grzechotanie osłon i łańcuchów wzbudzane drganiami */
   if (p.rattle) {
-    var rb = grainBank(r, 10, 700, 4500, 0.006), rr2 = new S(m);
+    var rb = grainBank(r, 10, 500, 2600, 0.014, 0.004), rr2 = new S(m);
     idx.forEach(function (x, q) { if (r.next() < 0.6) addAt(rr2, rb[r.int(0, 10)], x + Math.round(r.uniform(0.003, 0.03) * SR), ev.a[q] * r.uniform(0.2, 1), circ); });
-    y = y.add(rr2.mul(p.rattle / (stdOf(rr2) + 1e-12) * 0.3));
+    y = y.add(lp(rr2, 3000, 2, circ).mul(p.rattle / (stdOf(rr2) + 1e-12) * 0.2));
   }
   if (p.chain) {
     var cb = [], ch = new S(m);
-    for (i = 0; i < 4; i++) cb.push(burst(N(0.06), r, 0.02, 250, 1600).add(metalClink(r, { f0: 500, f1: 2500, count: 5, t60: 0.025, gain: 0.5 }).slice(0, N(0.06))));
+    for (i = 0; i < 4; i++) cb.push(lp(burst(N(0.07), r, 0.025, 250, 1600, { attack: 0.003 }).add(fit(metalClink(r, { f0: 500, f1: 2200, count: 5, t60: 0.025, gain: 0.5 }), N(0.07)).mul(gen(N(0.07), function (t) { return Math.min(t / 0.002, 1); }))), 2500, 2));
     idx.forEach(function (x, q) { if (q % 2 === 0) addAt(ch, cb[r.int(0, 4)], x + Math.round(0.012 * SR), r.uniform(0.4, 1), circ); });
     y = y.add(ch.mul(p.chain / (stdOf(ch) + 1e-12) * 0.3));
   }
@@ -3514,7 +3516,7 @@ sfxV4('eng_start', function (c) {
 }, 3.2);
 sfxV4('eng_stall', function (c) {
   var n = c.n, r = c.rng, p = eng4P('petrol', 0);
-  p.fan = 0; p.ccv = 0.3;
+  p.fan = 0; p.ccv = 0.3; p.knock *= 0.5; p.valve *= 0.5; p.out = 5000;                                         /* pojedyncze zapłony przy niskich obrotach: bez ostrych stuków */
   var rpmFn = function (t) { return Math.max(40, 620 * Math.pow(Math.max(0, 1 - t / 1.25), 0.8)); };
   var ev = eventsFromRpm(r, p, 0, 1.3, rpmFn, function (t) { return 1 - 0.55 * t / 1.25; }, function (t) { return 1 - 0.5 * t / 1.25; });
   ev.t.push(1.32, 1.52); ev.a.push(1.1, 0.7); ev.c.push(0, 3);                                                    /* ostatnie, mocne sprężania - silnik "odbija" */
@@ -3900,8 +3902,8 @@ sfxV4('hit_module', function (c) {
         tag.textContent = names[i]; var cur = i; i++;
         src.onended = function () { setTimeout(next, 350); };
         curSrc = { stop: function () { stopped = true; try { src.onended = null; src.stop(); } catch (e) { } tag.textContent = ''; btn.textContent = 'A/B'; } };
-        if (r.spec.loop) src.stop(actx.currentTime + 3);
         src.start();
+        if (r.spec.loop) src.stop(actx.currentTime + 3);                                     /* stop() dopiero po start() */
       }
       btn.textContent = '■ A/B'; curBtn = null; next();
     }).catch(function (e) { tag.textContent = ''; if (String(e.message) !== 'anulowano') alert('Błąd: ' + e.message); });
