@@ -1,4 +1,4 @@
-# Prompty ElevenLabs (Sound Effects): wystrzały i trafienia
+# Prompty ElevenLabs (Sound Effects): wystrzały, trafienia, podwozie i teren, ambienty
 
 Dźwięki, z którymi proceduralny generator ma najwięcej problemów: brzmią syntetycznie, mimo kolejnych poprawek.
 Do podmiany na nagrania lub generację. Prompty są po angielsku, bo ElevenLabs najlepiej rozumie angielski.
@@ -42,7 +42,7 @@ Do podmiany na nagrania lub generację. Prompty są po angielsku, bo ElevenLabs 
 | `hit_pen_thick` | 1,5 s | `A heavy armor-piercing shell penetrates thick tank armor: huge concussive impact boom, violent crunch of steel tearing, deep muffled blast inside the hull, metal fragments rattling inside. Heavy, brutal, heard from outside in an open field, no music.` |
 | `hit_ricochet` | 1,2 s | `A tank shell glances off sloped steel armor and ricochets away: hard explosive clang, sparks, then the deflected shell tumbles away with a fast whirring, fading whoosh. Outdoors, close perspective, no music.` |
 | `hit_mg` | 0,8 s | `Rifle-caliber machine gun bullet hits tank armor: sharp bright "spak" of a bullet splattering on thick steel, tiny metallic ping, fragments spraying, very short. Single impact, outdoors, no music.` |
-| `hit_spall` | 0,8 s | `Inside a WWII tank: metal spall fragments fly around the crew compartment after a hit, a rapid cluster of sharp metallic impacts ricocheting off steel walls, cramped dry metal interior. No music, no voices.` |
+| `hit_spall` | 1,0 s | `A handful of small steel nuts and bolts thrown hard against a thick steel wall in a small metal room, a fast burst of sharp metallic clinks and clatters that quickly dies down. Dry, close-up, no music.` (alternatywy w sekcji „hit_spall: warianty”) |
 | `hit_rivets` | 0,6 s | `Inside an old riveted WWII tank hit by a shell: rivet heads snap off the inner armor and fly across the compartment, several sharp metallic pops and clinks against steel walls. Short, dry interior. No music.` |
 | `hit_he` | 3,5 s | `A high-explosive artillery shell explodes on a tank: powerful detonation with a sharp crack and deep boom, heavy shockwave, steel debris and dirt raining down for a moment, long rolling echo across open terrain. Outdoor, no music.` |
 | `hit_heat` | 1,4 s | `A shaped-charge HEAT round detonates on tank armor: sharp concentrated explosion, a hissing jet of molten metal cutting through steel, crackling sparks and spall. Outdoors, close perspective, no music.` |
@@ -53,6 +53,63 @@ Do podmiany na nagrania lub generację. Prompty są po angielsku, bo ElevenLabs 
 | `cookoff` | 5,0 s | `Ammunition cook-off inside a destroyed WWII tank: a huge initial explosion, roaring fireball, then a series of smaller secondary detonations and popping rounds, burning propellant hissing, metal debris and hatches crashing down. Outdoors, no music, no voices.` |
 | `hull_torn` | 3,0 s | `A tank hull is torn apart by a massive internal explosion: deep powerful blast, screeching and tearing of thick steel plates, heavy armor panels crashing to the ground, debris falling. Outdoors, no music.` |
 
+### hit_spall: warianty (pierwotny prompt nie działał: „spall” i „ricocheting” myliły model, a „Inside a tank” dodawało silnik)
+
+Prompt influence ~0,7–0,8, czas 1 s:
+
+1. `A handful of small steel nuts and bolts thrown hard against a thick steel wall in a small metal room, a fast burst of sharp metallic clinks and clatters that quickly dies down. Dry, close-up, no music.`
+2. `A loud metallic bang followed by dozens of small sharp steel fragments striking metal walls in a cramped steel box, a quick clattering rattle lasting under one second. Dry, no ringing, no music.`
+3. `Shrapnel striking the inside of an armored steel compartment: a sudden sharp impact, then a rapid scatter of small metal pieces bouncing and rattling off steel surfaces. Short, dry, no whistle, no music.`
+4. `Short burst of metal debris clattering on a steel floor and steel walls, like a bucket of steel scraps dropped at once. One second, dry, realistic, no music.`
+
+Awaryjnie można złożyć dwie warstwy: odpryski (1 lub 4) nałożone 10–20 ms po krótkim huku
+`short muffled metallic thump inside a steel box, dry`, całość przycięta do ~0,8 s.
+
+## Podwozie i teren
+
+Te dźwięki nakładają się w grze na pętle silnika, dlatego w każdym prompcie jest `no engine sound`.
+Bez tego model zwykle dokłada silnik.
+
+**Pętle (`loop: tak`)**:
+- w ElevenLabs włącz **Loop**, jeśli jest dostępne;
+- jeśli nie: generuj 8–12 s, wytnij fragment o równym rytmie i zszyj końce przenikaniem (crossfade ~50–100 ms);
+- pętla może być dłuższa niż w specyfikacji (2–3 s), bo silnik gry zapętla dowolną długość, a dłuższa mniej się powtarza;
+- głośność pętli: −18 LUFS (integrated).
+
+| plik | czas | pętla | prompt |
+|---|---|---|---|
+| `track_steel` | 8–10 s | tak | `Steel tank tracks of a WWII tank rolling at steady moderate speed on a dirt road, heard close from the side: rhythmic heavy clanking of track links over the sprocket, rattling track pins, squeaking road wheels, low rumble. Constant speed, no engine sound, no music.` |
+| `track_rubber` | 8–10 s | tak | `Rubber-padded tank tracks rolling steadily on an asphalt road, close perspective: dull rhythmic thumping of track pads, soft rattle, rolling road wheels, low rumble. Much softer than steel tracks, constant speed, no engine sound, no music.` |
+| `track_ww1` | 10–12 s | tak | `Very slow, heavy WWI tank tracks crawling over muddy ground: slow, loud, irregular clanking of huge steel track plates, chain-like rattling and squealing, creaking, heavy low rumble. Constant slow speed, no engine sound, no music.` |
+| `wheels_road` | 8–10 s | tak | `Heavy WWII armored car with large rubber tires driving steadily on a cobblestone and gravel road, close perspective: tire roar and hum, gravel crunching and popping under the tires, rhythmic bumps over joints, loose metal parts rattling. No engine sound, no music.` |
+| `halftrack_roll` | 8–10 s | tak | `WWII half-track vehicle rolling steadily on a dirt road: rubber band tracks thumping rhythmically, front tires rolling on gravel, rattling suspension and loose equipment. Close perspective, constant speed, no engine sound, no music.` |
+| `track_spin` | 6–8 s | tak | `Tank tracks spinning in place without traction in mud and gravel: fast continuous clattering of steel track links, mud and stones being thrown and spattering, grinding scrape. Close perspective, no engine sound, no music.` |
+| `surf_mud` | 8–10 s | tak | `Heavy tank tracks churning through thick wet mud at slow speed: deep squelching, sucking and slapping mud with every track link, wet splatter, low rumble. Close perspective, no engine sound, no music.` |
+| `surf_sand` | 8–10 s | tak | `Tank tracks rolling over dry sand and fine gravel: continuous soft crunching and hissing of sand under the tracks in a steady rhythm, muffled clanking of links. Close perspective, no engine sound, no music.` |
+| `surf_water` | 8–10 s | tak | `A heavy tank fording a shallow river at slow speed: water sloshing and splashing against the hull, tracks churning water, bubbling and gurgling, waves lapping. Close perspective, no engine sound, no music.` |
+| `water_enter` | 2 s | nie | `A heavy tank drives fast into a river: a big heavy splash as the hull hits the water, a wall of water crashing down, bubbles, then waves slapping against the hull and settling. One event, no engine sound, no music.` |
+| `susp_bump` | 0,6 s | nie | `A heavy tank drives over a bump: one deep heavy thud of the vehicle mass, metallic clunk of the suspension hitting the bump stop, a short spring rebound, loose tools and equipment rattling on the hull. Single event, no engine sound, no music.` |
+| `step_hit` | 0,8 s | nie | `A heavy tank drops off a ledge and its front slams into the ground: massive heavy thud, steel tracks clanking, suspension clunk, rattling equipment, clods of earth falling. Single event, no engine sound, no music.` |
+| `belly_scrape` | 1,2 s | nie | `The steel belly of a tank scrapes over rocks and hard ground: heavy grinding friction, harsh metallic screeching scrape, stones knocking against the hull, gravel crunching. Short event, no engine sound, no music.` |
+| `brake` | 1,6 s | nie | `A heavy WWII tank brakes hard to a stop: steel tracks clank slower and slower, a metallic brake squeal, a low groan of friction just before stopping, then the hull rocks forward and back on its suspension with a heavy clunk. No engine sound, no music.` |
+| `hull_creak` | 1,5 s | nie | `Thick steel plates of a tank hull creaking and groaning under stress: slow metallic stick-slip creak, deep groan of the hull, no impacts. Close perspective, no engine sound, no music.` |
+
+## Ambienty (tła, stereo)
+
+Pliki w specyfikacji są 40-sekundowe (`amb_battle`: 15 s). Maksymalna długość w ElevenLabs bywa krótsza
+(sprawdź limit w swoim planie), więc:
+- generuj najdłużej, jak się da, z **Loop** (jeśli dostępne);
+- albo złóż 2 różne generacje tego samego promptu z przenikaniem ~1–2 s i zszyj koniec z początkiem;
+- głośność ambientów: −23 LUFS (integrated), stereo.
+
+| plik | prompt |
+|---|---|
+| `amb_battle` | `Distant WWII battlefield ambience heard from a quiet position: far-off artillery explosions with long rolling echoes, distant machine gun bursts, occasional rifle shots, a shell whistling high overhead, a tank rumbling far away, light wind. Wide stereo, distant, no music, no voices.` |
+| `amb_range` | `Military proving ground on a calm summer day: gentle wind over open grassland, birds singing in the distance, occasional far-off tank cannon test shots echoing across the hills, a tank rumbling faintly in the distance. Wide stereo, peaceful, no music, no voices.` |
+| `amb_town` | `Small industrial town in the 1940s heard from an open office window: distant street noise, an old truck passing by, a blacksmith hammering on an anvil far away, birds, light wind, a factory steam whistle in the distance once. Wide stereo, calm, no modern cars, no music, no voices.` |
+| `amb_office` | `1940s engineering design office interior: quiet room tone, a wall clock ticking, an old mechanical typewriter typing in bursts with a carriage bell and return, paper rustling, a muffled factory press thumping behind the wall. Calm, no music, no voices, no modern electronics.` |
+| `fire_loop` | `A burning destroyed tank close up: roaring fire, crackling and popping flames, hissing, occasional small pops of burning ammunition, metal ticking from heat. Constant intensity, loopable, no explosions, no music, no voices.` |
+
 ## Wskazówki, gdy wynik jest zły
 
 - **Za mało mocy**: dopisz `massive, concussive, chest-hitting low end, close perspective`.
@@ -60,3 +117,6 @@ Do podmiany na nagrania lub generację. Prompty są po angielsku, bo ElevenLabs 
 - **Za dużo pogłosu**: dopisz `dry, close-up, minimal reverb, open field`.
 - **Dodaje serię strzałów**: dopisz `single shot only, one impact, no burst`.
 - **Zbyt filmowe** (whoosh przed strzałem, efekty „trailerowe”): dopisz `realistic field recording, no cinematic whoosh, no build-up`.
+- **Dokłada silnik do gąsienic lub terenu**: dopisz `no engine sound, no engine noise` (czasem pomaga też `recorded with the engine off, coasting`).
+- **Rytm gąsienic za szybki lub za wolny**: dopisz `slow walking pace` / `moderate speed` / `fast speed`.
+- **W ambiencie są współczesne dźwięki**: dopisz `1940s, no modern cars, no airplanes, no electronics`.
