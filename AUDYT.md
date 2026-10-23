@@ -236,3 +236,21 @@ v4 przed zmianą: kb −13 dB w 50–500 ms i nic później (za suche, „zabawk
 - `brake`: gąsienica zwalnia płynnie (tempo ogniw ~ prędkość), toczenie zamiera, ślizg po podłożu, pisk bębna
   z nieregularnym narastaniem i przeskokiem na drugi ton, jęk tarcia tuż przed zatrzymaniem, przód nurkuje
   na zawieszeniu i odbija do tyłu (1,6 s).
+
+## Runda 7: trafienia „jak w garnku / gotowane ziemniaki”, strzały „w pustym hangarze”
+
+Przyczyny:
+- Kalibracja ogona do nagrania terenowego była błędem kierunku. Tamten strzał nagrano z daleka, więc pogłosu
+  jest w nim naturalnie dużo więcej niż przy strzale z bliska. Stąd „hangar”.
+- Gęsty ciąg ciemnych, dyskretnych odbić (20–220/s) brzmiał jak bulgotanie: każde odbicie to „plop” bąbla.
+- Trafienia oparte były na dzwoniących modach blachy i rezonansach pustego kadłuba, czyli garnek/beczka.
+  Trafienie pocisku w pancerz to przede wszystkim huk (fala ciśnienia), a metal jest krótki.
+
+Zmiany:
+- `echoCloud`: tylko kilka wyraźnych odbić w pierwszych ~0,35 s, dalej gładki, ciemny pomruk (bez pojedynczych zdarzeń).
+- Strzały: ogon ~8–10 dB cichszy (50–500 ms ≈ −3…−6 dB, 0,5–1,5 s ≈ −17…−27 dB względem strzału).
+- `armorStrike`: rdzeń trafienia = podmuch jak wystrzał (`gunshot4`, suchy) + krótki trzask stali (płyta 0,05–0,1 s,
+  bez modów kadłuba) + gładki syk iskier. Używany w `hit_nonpen`, `hit_pen`, `hit_ricochet`, `hit_module`.
+- `hit_he`, `hit_heat`: warstwa stali krótka (0,08–0,09 s), bez „garnka”. `hit_spall`, `hit_rivets`, `hit_module`:
+  usunięte rezonanse pustego kadłuba (`hullBox`). Plener trafień: odbicia ~3× słabsze.
+- Wystające piki w trafieniach: 10–16 dB (poziom szumu), szorstkość 1,8–3,2 dB. Silniki bez zmian.

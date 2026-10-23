@@ -3242,21 +3242,22 @@ function plateSet(rng, lo, hi, count, t60, o) {
  * zabudowy - najpierw rzadkie i jasne, potem coraz gęstsze i ciemniejsze, aż zlewają się w ciemny, cichy pogłos.
  * Gładki szum jako ogon brzmi sztucznie (hala, szelest); dyskretne odbicia - jak plener. Zwraca IR o energii 1. */
 function echoCloud(rng, n, o) {
+  /* kilka wyraźnych, umiarkowanie jasnych odbić w pierwszych ~0,35 s (drzewa, brzegi), potem tylko gładki, ciemny pomruk.
+   * Gęsty ciąg ciemnych odbić brzmiał jak bulgotanie (każde odbicie = "plop"), a dużo pogłosu - jak pusty hangar */
   var ir = new S(n), rt = o.rt || 1.2, t0 = o.start || 0.04, T = n / SR, i, ker = [];
-  for (i = 0; i < 9; i++) { var fc = 7500 * Math.pow(0.72, i), kn = fit(fromArr([1]), N(0.008)); ker.push(lp(lp(kn, fc, 2), fc * 1.3, 2)); }
-  var t = t0, d0 = o.d0 || 20, d1 = o.d1 || 220, dk = o.darken || 0.12;
-  while (t < T - 0.01) {
-    var u = t - t0, rate = d0 + (d1 - d0) * Math.min(u / 0.7, 1);
-    var a = Math.exp(-6.9 * u / rt) * Math.min(1.5, Math.sqrt(-2 * Math.log(1 - 0.98 * rng.next()))) * (rng.next() < 0.5 ? -1 : 1);
-    var ki = Math.min(8, Math.max(1, Math.floor(u / dk) + rng.int(0, 2)));                                   /* nawet pierwsze odbicia są przyciemnione (drzewa, ziemia) */
-    place(ir, ker[ki], t, a);
+  for (i = 0; i < 5; i++) { var fc = 7500 * Math.pow(0.75, i), kn = fit(fromArr([1]), N(0.008)); ker.push(lp(lp(kn, fc, 2), fc * 1.3, 2)); }
+  var t = t0, tEnd = Math.min(T - 0.01, t0 + 0.35);
+  while (t < tEnd) {
+    var u = t - t0, rate = 12 + 40 * u / 0.35;
+    var a = Math.exp(-6.9 * u / rt) * Math.min(1.4, Math.sqrt(-2 * Math.log(1 - 0.98 * rng.next()))) * (rng.next() < 0.5 ? -1 : 1);
+    place(ir, ker[Math.min(4, 1 + Math.floor(u / 0.1))], t, a);
     t += -Math.log(1 - 0.999 * rng.next()) / rate;
   }
   var e1 = 0; for (i = 0; i < n; i++) e1 += ir[i] * ir[i];
   ir = ir.mul(1 / Math.sqrt(e1 + 1e-12));
-  var rs = lp(noise(n, rng, 50, 1400, { slope: -1 }), 1600, 2).mul(gen(n, function (tt) { return Math.min(Math.max((tt - 0.12) / 0.25, 0), 1) * Math.exp(-6.9 * tt / rt); })), e2 = 0;   /* ciemne "zlanie się" na końcu */
+  var rs = lp(noise(n, rng, 40, 900, { slope: -1 }), 1000, 2).mul(gen(n, function (tt) { return Math.min(Math.max((tt - t0) / 0.15, 0), 1) * Math.exp(-6.9 * tt / rt); })), e2 = 0;   /* ciemny, gładki pomruk */
   for (i = 0; i < n; i++) e2 += rs[i] * rs[i];
-  return ir.add(rs.mul(0.35 / Math.sqrt(e2 + 1e-12))).mul(1 / Math.sqrt(1 + 0.35 * 0.35));
+  return ir.mul(0.75).add(rs.mul(0.66 / Math.sqrt(e2 + 1e-12)));
 }
 /* odpowiedź plenerowa: bezpośredni + odbicie od ziemi + echa (las, zabudowa) + rozproszony ogon ciemniejący w czasie.
  * Otwarty teren (domyślnie): po dźwięku bezpośrednim tylko słabe, ciemne odbicie od ziemi, potem przerwa; ogon od lasu
@@ -3357,7 +3358,7 @@ function impact4(r, n, o) {
   return y;
 }
 function hitEnv(r, o) {
-  var c = o && o.cloud !== undefined ? o.cloud : 0.55;
+  var c = o && o.cloud !== undefined ? o.cloud : 0.15;
   return Object.assign({}, { dur: 1.2, ground: 0.45, groundMs: 5, rt: 0.9, tail: 0.07, pre: 0.02, echoes: [[r.uniform(0.12, 0.22), 0.08, 1400, 0.03], [r.uniform(0.35, 0.55), 0.05, 900, 0.04]] }, o || {}, { tail: 0, echoes: [], cloud: c, crt: (o && o.rt) || 1.0, cstart: 0.03 });   /* ogon: chmura odbić jak w strzałach */
 }
 
@@ -3569,7 +3570,7 @@ sfxV4('hit_he', function (c) {
   var n = c.n, r = c.rng, size = c.v === 0 ? c.u(0.85, 1.0) : c.u(0.6, 0.75);
   var y = explosion4(r, n, { size: size, metal: 0.25, dry: true });
   var pk = maxAbs(y);
-  y = y.add(impact4(r, n, { lo: 130, hi: 4500, count: 50, t60: 0.35, tc: 0.0004, hull: 0.9, hullF: 85, hullT: 0.35, bang: 0, spark: 0.6, sparkDur: 0.08, drive: 1.4 }).mul(0.35 * pk));   /* kadłub dostaje cios */
+  y = y.add(impact4(r, n, { lo: 180, hi: 6000, count: 100, t60: 0.09, dk: 0.35, tc: 0.0004, hull: 0.1, hullF: 85, hullT: 0.06, thud: 0.2, bang: 0, spark: 0.6, sparkDur: 0.08, drive: 1.4 }).mul(0.3 * pk));   /* stal kadłuba: krótki trzask */   /* kadłub dostaje cios */
   var fr = new S(n);
   for (var i = 0; i < 4; i++) { var m = N(r.uniform(0.15, 0.3)), f0 = r.uniform(1800, 3500); place(fr, tvBp(noise(m, r), function (t) { return f0 * Math.exp(-t / 0.15); }, 0.6).mul(dec(m, 0.2, 0.01)), r.uniform(0.02, 0.25), r.uniform(0.3, 0.7)); }   /* świst odłamków */
   y = y.add(fr.mul(0.12 * pk / (maxAbs(fr) + 1e-12)));
@@ -3652,6 +3653,40 @@ sfxV4('hit_pen', function (c) {
   y = y.add(ins.mul(0.35 * pk / (maxAbs(ins) + 1e-12))).add(sp.mul(0.3 * pk / (maxAbs(sp) + 1e-12)));
   return outdoor(y, r, hitEnv(r, {}));
 }, 1.2);
+
+/* uderzenie pocisku w pancerz v5: przede wszystkim HUK (energia pocisku zamienia się w falę ciśnienia - jak wystrzał),
+ * do tego ostry, krótki trzask stali i mocno tłumiona płyta. Bez rezonansów pustego kadłuba (to dawało "garnek")
+ * o: cal (wielkość huku), peak, crack, metal (udział stali), lo, hi, t60 (płyta), spark, drive */
+function armorStrike(r, n, o) {
+  var blast = gunshot4(r, n, { cal: o.cal, peak: o.peak, crack: o.crack === undefined ? 0.6 : o.crack, boom: o.boom === undefined ? 0.3 : o.boom, drive: o.drive || 2.6,
+    env: { ground: 0, tail: 0, echoes: [], cloud: 0 } });
+  var met = impact4(r, n, { lo: o.lo, hi: o.hi || 8000, count: 120, t60: o.t60, dk: 0.35, plate: 1.0, tc: o.tc || 0.00012, hullF: 100, hullT: 0.05, hull: 0.05, thud: 0.15,
+    bang: 0.5, tp: 0.0004, drive: 1.6, spark: o.spark === undefined ? 0.8 : o.spark, sparkDur: 0.06 });
+  var y = normPk(blast).add(normPk(met).mul(o.metal === undefined ? 0.6 : o.metal));
+  return satA(y, 1.4, 0.02);
+}
+function strikeEnv(r, o) { return Object.assign({ dur: 1.5, ground: 0.5, groundMs: 5, tail: 0, echoes: [], cloud: 0.12, crt: 1.1, cstart: 0.04 }, o || {}); }
+sfxV4('hit_nonpen', function (c) {
+  var n = c.n, r = c.rng, thick = c.sub === 'thick', v = c.v;
+  /* bez przebicia: potężny huk i ostry, krótki brzęk odbijającego się pocisku; odpryski */
+  var y = armorStrike(r, n, thick ? { cal: c.u(0.45, 0.55), peak: c.u(600, 800), lo: c.u(180, 240), t60: v ? 0.07 : 0.1, metal: 0.55 }
+    : { cal: c.u(0.3, 0.38), peak: c.u(800, 1100), lo: c.u(350, 450), hi: 10000, t60: v ? 0.06 : 0.08, metal: 0.65, tc: 0.00008 }), pk = maxAbs(y);
+  for (var k = 0, kk = r.int(2, 5); k < kk; k++) place(y, metalClink(r, { f0: 1200, f1: 7000, count: 6, t60: 0.025, noise: 0.3, tonal: 0.85, gain: 1 }), r.uniform(0.03, 0.25), pk * r.uniform(0.02, 0.06));
+  return outdoor(y, r, strikeEnv(r));
+}, 1.5);
+sfxV4('hit_pen', function (c) {
+  var n = c.n, r = c.rng, thick = c.sub === 'thick';
+  /* przebicie: huk, chrzęst ścinanej stali, stłumiony podmuch we wnętrzu, kilka odprysków w środku */
+  var y = armorStrike(r, n, thick ? { cal: c.u(0.5, 0.6), peak: c.u(550, 700), lo: c.u(180, 240), t60: 0.06, metal: 0.45 } : { cal: c.u(0.35, 0.42), peak: c.u(750, 1000), lo: c.u(350, 450), hi: 10000, t60: 0.05, metal: 0.5 }), pk = maxAbs(y);
+  var m = N(thick ? 0.06 : 0.045), sh = noise(m, r, 700, 9000, { slope: -0.3 }).mul(earlyRough(m, r, 150, 0.5, 0.01)).mul(gen(m, function (t) { return Math.min(t / 0.002, 1) * Math.exp(-6.9 * t / (m / SR)); }));
+  place(y, sh.mul(0.35 * pk / (maxAbs(sh) + 1e-12)), 0.002, 1);                                                 /* ścinanie */
+  var ins = lp(normPk(burst(N(0.4), r, 0.15, 25, 250, { attack: 0.004, order: 3 })), 300, 2);                   /* podmuch we wnętrzu, przez pancerz: tylko bas */
+  place(y, ins.mul(0.35 * pk), 0.006, 1);
+  var sp = new S(n);
+  poisson(r, 0.4, null, function (t) { return 3 + 25 * Math.exp(-t / 0.1); }, 0.01).forEach(function (t) { place(sp, metalClink(r, { f0: 600, f1: 5000, count: 6, t60: 0.03, noise: 0.3, tonal: 0.85, gain: r.uniform(0.2, 0.7) }), t, 1); });
+  y = y.add(lp(sp, 3500, 2).mul(0.12 * pk / (maxAbs(sp) + 1e-12)));
+  return outdoor(y, r, strikeEnv(r));
+}, 1.5);
 /* wnętrze kadłuba jako zamknięta, metalowa skrzynia: rezonanse 60-400 Hz */
 function hullBox(r, n, x) {
   var fs = [], ts = [], gs = [];
@@ -3661,8 +3696,8 @@ function hullBox(r, n, x) {
 }
 sfxV4('hit_ricochet', function (c) {
   var n = c.n, r = c.rng, v = c.v, y;
-  var thin = { lo: c.u(350, 500), hi: 9000, count: 55, t60: 0.18, tc: 0.0001, hullF: c.u(100, 140), hullT: 0.15, hull: 0.3, thud: 0.25, bang: 0.7, tp: 0.0005, drive: 1.7, spark: 1.2, sparkDur: 0.06 };
-  y = impact4(r, n, v === 2 ? Object.assign({}, thin, { bang: 0.3, t60: 0.1, hull: 0.15, spark: 1.6, sparkDur: 0.15 }) : thin);
+  var thin = { cal: c.u(0.22, 0.3), peak: c.u(900, 1300), lo: c.u(400, 550), hi: 10000, t60: 0.07, metal: 0.8, tc: 0.00008, spark: 1.0 };
+  y = armorStrike(r, n, v === 2 ? Object.assign({}, thin, { cal: 0.15, metal: 0.6, t60: 0.05, spark: 1.4 }) : thin);
   var pk = maxAbs(y);
   /* odlatujący, koziołkujący pocisk: szum powietrza modulowany obrotem, ton opadający (oddalanie) */
   function flyAway(t0, dur, fHi, fLo, gain) {
@@ -3676,7 +3711,7 @@ sfxV4('hit_ricochet', function (c) {
   if (v === 0) flyAway(0.004, 0.9, c.u(2600, 3400), c.u(900, 1300), 0.55);
   else if (v === 1) {
     flyAway(0.004, 0.3, 2800, 1600, 0.45);
-    var t2 = c.u(0.09, 0.13), y2 = impact4(r, N(0.6), Object.assign({}, thin, { lo: c.u(400, 600), bang: 0.4 }));
+    var t2 = c.u(0.09, 0.13), y2 = armorStrike(r, N(0.6), Object.assign({}, thin, { lo: c.u(450, 650), cal: 0.18 }));
     place(y, y2.mul(0.6 * pk / (maxAbs(y2) + 1e-12)), t2, 1);
     flyAway(t2 + 0.004, 0.7, 2300, 900, 0.4);
   } else flyAway(0.01, 0.9, c.u(3200, 3800), c.u(1800, 2200), 0.35);
@@ -3686,7 +3721,7 @@ sfxV4('hit_ricochet', function (c) {
 sfxV4('hit_heat', function (c) {
   var n = c.n, r = c.rng, v = c.v;
   var y = explosion4(r, n, { size: v === 0 ? 0.32 : 0.25, drive: 2.4, crack: 1.0, debris: 0, dry: true }), pk = maxAbs(y);
-  y = y.add(impact4(r, n, { lo: 140, hi: 6000, count: 50, t60: 0.25, tc: 0.00015, hullF: 85, hullT: 0.3, hull: 0.8, thud: 0.5, bang: 0, spark: 1.5, sparkDur: 0.1, drive: 1.5 }).mul(0.45 * pk));
+  y = y.add(impact4(r, n, { lo: 200, hi: 8000, count: 100, t60: 0.08, dk: 0.35, tc: 0.00015, hullF: 85, hullT: 0.06, hull: 0.1, thud: 0.25, bang: 0, spark: 1.2, sparkDur: 0.1, drive: 1.5 }).mul(0.4 * pk));
   var jd = v === 0 ? 0.35 : 0.2, m = N(jd), jet = tvBp(noise(m, r), function (t) { return interp(t, [0, jd], [9000, 2800]); }, 1.6).mul(dec(m, jd * 0.9, 0.003));
   place(y, jet.mul(0.6 * pk / (maxAbs(jet) + 1e-12)), 0.004, 1);
   var sp = new S(n);
@@ -3701,16 +3736,16 @@ sfxV4('hit_spall', function (c) {
     place(sp, metalClink(r, { f0: 700, f1: 7000, count: 7, t60: r.uniform(0.02, 0.06), noise: 0.3, tonal: 0.85, gain: Math.exp(0.6 * r.normal()) * 0.4 }), t, 1);
   });
   var y = reverb(sp, smallRoom(r, 0.06), 1.0, 0.5, n);
-  y = y.add(hullBox(r, n, sp.mul(0.5)).mul(0.6));
   return y.add(normPk(burst(n, r, 0.06, 30, 250, { attack: 0.002, order: 3 })).mul(0.4 * maxAbs(y)));
 });
 sfxV4('hit_module', function (c) {
   var n = c.n, r = c.rng;
   /* trafienie w moduł (silnik, przekładnia): tępy, ciężki udar w żeliwo, pękające elementy, grzechot */
-  var y = impact4(r, n, { lo: 180, hi: 4000, count: 50, t60: 0.12, tc: 0.0004, hullF: 75, hullT: 0.25, hull: 0.9, thud: 0.9, bang: 0.5, tp: 0.0012, drive: 2.0, spark: 0.4 }), pk = maxAbs(y);
+  var y = armorStrike(r, n, { cal: c.u(0.35, 0.45), peak: c.u(450, 650), lo: c.u(150, 220), hi: 5000, t60: 0.06, metal: 0.5, tc: 0.0004, spark: 0.3 }), pk = maxAbs(y);
+  y = y.add(normPk(burst(n, r, 0.08, 30, 300, { attack: 0.002, order: 3 })).mul(0.35 * pk));                   /* masa żeliwa: tępe uderzenie */
   var sp = new S(n);
   for (var i = 0, k = r.int(5, 10); i < k; i++) place(sp, metalClink(r, { f0: 500, f1: 4000, count: 6, t60: 0.04, noise: 0.3, tonal: 0.85, gain: r.uniform(0.2, 0.7) }), r.uniform(0.05, 0.5), 1);
-  y = y.add(hullBox(r, n, sp).mul(0.25 * pk / (maxAbs(sp) + 1e-12))).add(lp(sp, 4000, 2).mul(0.15 * pk / (maxAbs(sp) + 1e-12)));
+  y = y.add(lp(sp, 4000, 2).mul(0.15 * pk / (maxAbs(sp) + 1e-12)));
   return outdoor(y, r, hitEnv(r, { tail: 0.05 }));
 });
 
@@ -3740,7 +3775,7 @@ function gunshot4(r, n, o) {
   place(y, nw.mul((o.crack === undefined ? 0.7 : o.crack) * pk / (maxAbs(nw) + 1e-12)), 0, 1);
   if (o.mech) o.mech(y, pk);
   var env = Object.assign({ dur: Math.min(n / SR, 2.4), ground: 0.6, groundMs: 3 + 4 * cc, tail: 0, echoes: [],
-    cloud: o.cloud === undefined ? 0.9 / (1 + 1.5 * cc * cc) : o.cloud, crt: 1.2 + 0.7 * cc, cstart: 0.035 + 0.02 * cc }, o.env || {});   /* duże działa mają długi własny podmuch: mniej chmury */   /* ogon jak w nagraniu terenowym: chmura odbić */
+    cloud: o.cloud === undefined ? 0.32 / (1 + 1.5 * cc * cc) : o.cloud, crt: 0.9 + 0.7 * cc, cstart: 0.035 + 0.02 * cc }, o.env || {});   /* duże działa mają długi własny podmuch: mniej chmury */   /* ogon jak w nagraniu terenowym: chmura odbić */
   return outdoor(y, r, env);
 }
 /* mechanika: zamek broni maszynowej (metaliczne kliknięcie, mało jaśniejsze) */
@@ -3764,12 +3799,12 @@ function recoilMech(r, cal) {
 }
 sfxV4('mg_shot', function (c) {
   var r = c.rng, v = c.v;
-  return gunshot4(r, c.n, { cal: [0.08, 0.09, 0.07][v], peak: c.u(850, 1200), body: c.u(0.05, 0.07), boom: 0.06, crack: 0.8, drive: 2.8, cloud: 0.8,
+  return gunshot4(r, c.n, { cal: [0.08, 0.09, 0.07][v], peak: c.u(850, 1200), body: c.u(0.05, 0.07), boom: 0.06, crack: 0.8, drive: 2.8, cloud: 0.3,
     mech: boltClack(r, c.u(0.008, 0.012), 0.07) });
 }, 1.0);
 sfxV4('hmg_shot', function (c) {
   var r = c.rng;
-  return gunshot4(r, c.n, { cal: c.u(0.14, 0.17), peak: c.u(650, 900), body: c.u(0.08, 0.1), boom: 0.14, crack: 0.8, drive: 2.8, cloud: 0.85,
+  return gunshot4(r, c.n, { cal: c.u(0.14, 0.17), peak: c.u(650, 900), body: c.u(0.08, 0.1), boom: 0.14, crack: 0.8, drive: 2.8, cloud: 0.32,
     mech: boltClack(r, c.u(0.012, 0.016), 0.08) });
 }, 1.2);
 sfxV4('autocannon_shot', function (c) {
@@ -3792,7 +3827,7 @@ sfxV4('cannon_l_fire', function (c) {
 sfxV4('howitzer_fire', function (c) {
   var r = c.rng;
   /* haubica: niższa prędkość pocisku - słabszy trzask, potężniejszy, dłuższy podmuch */
-  return gunshot4(r, c.n, { cal: c.u(1.15, 1.25), peak: c.u(300, 380), body: 0.55, boom: 0.85, crack: 0.25, drive: 2.6, mech: recoilMech(r, 1.2) });
+  return gunshot4(r, c.n, { cal: c.u(1.15, 1.25), peak: c.u(300, 380), body: 0.4, boom: 0.7, crack: 0.25, drive: 2.6, mech: recoilMech(r, 1.2) });
 }, 2.8);
 sfxV4('recoilless_fire', function (c) {
   var n = c.n, r = c.rng;
@@ -3871,8 +3906,7 @@ sfxV4('hit_rivets', function (c) {
     var w = metalClink(r, { f0: 800, f1: 5000, count: 6, t60: 0.03, noise: 0.6, gain: 0.4 });
     place(y, w, t + r.uniform(0.02, 0.08), 1);
   });
-  y = reverb(y, smallRoom(r, 0.05), 1, 0.6, n);
-  return y.add(hullBox(r, n, y).mul(0.3));
+  return reverb(y, smallRoom(r, 0.05), 0.6, 0.8, n);
 });
 sfxV4('hit_crew', function (c) {
   var n = c.n, r = c.rng;
@@ -3895,7 +3929,7 @@ sfxV4('shell_flyby', function (c) {
 sfxV4('hit_mg', function (c) {
   var n = c.n, r = c.rng, v = c.v;
   /* pocisk karabinowy o pancerz: "spak" - ostry trzask, jasny brzęk blachy wokół punktu trafienia, rozprysk płaszcza */
-  var y = impact4(r, n, { lo: c.u(900, 1400), hi: 12000, count: 50, t60: [0.09, 0.13, 0.07, 0.11][v], dk: 0.2, plate: 1.3, tc: 0.00004, hullF: 170, hullT: 0.08, hull: 0.15, thud: 0.15, bang: 0.9, tp: 0.00025, drive: 1.8, spark: 1.0, sparkDur: 0.03 });
+  var y = impact4(r, n, { lo: c.u(900, 1400), hi: 12000, count: 80, t60: [0.05, 0.07, 0.04, 0.06][v], dk: 0.3, plate: 1.3, tc: 0.00004, hullF: 170, hullT: 0.08, hull: 0.15, thud: 0.15, bang: 0.9, tp: 0.00025, drive: 1.8, spark: 1.0, sparkDur: 0.03 });
   var pk = maxAbs(y);
   place(y, burst(N(0.04), r, 0.012, 1500, 12000, { attack: 0.0002 }).mul(0.5 * pk), 0.0005, 1);
   if (v === 1 || v === 3) {                                                                                     /* rykoszet: szum odlatującego pocisku */
@@ -3904,7 +3938,7 @@ sfxV4('hit_mg', function (c) {
     place(y, wh.mul((v === 1 ? 0.4 : 0.25) * pk / (maxAbs(wh) + 1e-12)), 0.006, 1);
   }
   if (v === 2) place(y, impact4(r, N(0.15), { lo: c.u(1000, 1500), hi: 12000, count: 40, t60: 0.07, tc: 0.00004, hull: 0.1, thud: 0.1, bang: 0.9, tp: 0.00025, drive: 1.6, spark: 0.6, sparkDur: 0.02 }).mul(0.7 * pk), c.u(0.045, 0.07), 1);
-  return outdoor(y, r, hitEnv(r, { dur: 0.8, rt: 0.8, cloud: 0.9 }));
+  return outdoor(y, r, hitEnv(r, { dur: 0.8, rt: 0.8, cloud: 0.25 }));
 }, 0.8);
 
 /* ----- obsługa broni v4 ----- */
