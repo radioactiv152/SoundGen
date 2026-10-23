@@ -200,3 +200,39 @@ i powrotem karetki, kartki), `amb_battle` (+ przeloty pocisków, daleki czołg, 
 rozstrojone syreny z sekaniem wirnika i echem zabudowy, odległe wybuchy.
 
 Silniki: bez zmian (tryb bliski pleneru zachowany; render bajt w bajt identyczny z poprzednią wersją).
+
+## Runda 6: wystrzały, hamowanie, trafienia wg nagrania terenowego
+
+Nowe referencje (archive.org): nagranie terenowe strzałów z karabinu nad rzeką (pełne pasmo, naturalne otoczenie),
+pojedynczy strzał karabinowy z bliska, płyta z efektami wystrzałów.
+
+**Wnioski z nagrania terenowego:**
+- ogon strzału w plenerze to gęstniejący ciąg wyraźnych odbić (drzewa, brzegi): pierwsze rzadkie, kolejne
+  coraz gęstsze i ciemniejsze, nie gładki szum;
+- ogon jest głośny i długi: energia w 50–500 ms ≈ +2 dB względem samego strzału (0–30 ms), w 0,5–1,5 s ≈ −9 dB;
+- widmo karabinu ma maksimum ~500 Hz, płaskie 30 Hz – 3 kHz, góra powyżej 5 kHz gaśnie w ~0,3 s.
+
+v4 przed zmianą: kb −13 dB w 50–500 ms i nic później (za suche, „zabawkowe”), działo −1/−17 dB; kb z basem
+~10 dB za mocnym.
+
+**Zmiany:**
+- `echoCloud`: ogon jako chmura dyskretnych odbić (gęstość 20 → 220/s, coraz ciemniejsze, na końcu ciemne
+  „zlanie się”). Używana w strzałach, trafieniach i wybuchach. Silniki bez zmian (sprawdzone bajt w bajt).
+- Kalibracja ogona strzałów do nagrania (50–500 ms / 0,5–1,5 s, dB względem strzału):
+
+| | 50–500 ms | 0,5–1,5 s |
+|---|---|---|
+| nagranie terenowe | +1,7 | −9,6 |
+| `mg_shot` | +1,8 | −12,8 |
+| `hmg_shot` | +1,8 | −11,9 |
+| `cannon_m_fire` | −0,4 | −9,6 |
+| `cannon_l_fire` | −1,3 | −8,7 |
+
+- Karabiny: środek podmuchu niżej (850–1200 / 650–900 Hz), mniej basu, dłuższe pliki (1,0 / 1,2 s).
+  Działa 1,8–2,8 s.
+- Trafienia: chmura odbić, grube trafienia mniej dudnią, a więcej brzęczą. Rezonanse kadłuba to teraz gęsty,
+  losowy zestaw modów (tępe „bum” bez wysokości). Najniższe mody płyty są tłumione mocowaniem, a dzwonienie
+  pancerza skrócone. Wystające piki spadły z 20–23 dB do 13–17 dB.
+- `brake`: gąsienica zwalnia płynnie (tempo ogniw ~ prędkość), toczenie zamiera, ślizg po podłożu, pisk bębna
+  z nieregularnym narastaniem i przeskokiem na drugi ton, jęk tarcia tuż przed zatrzymaniem, przód nurkuje
+  na zawieszeniu i odbija do tyłu (1,6 s).
