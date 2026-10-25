@@ -1,4 +1,4 @@
-# Prompty ElevenLabs (Sound Effects): wszystkie grupy poza pętlami silników i interfejsem
+# Prompty ElevenLabs (Sound Effects): wszystkie grupy poza pętlami silników
 
 Dźwięki, z którymi proceduralny generator ma najwięcej problemów: brzmią syntetycznie, mimo kolejnych poprawek.
 Do podmiany na nagrania lub generację. Prompty są po angielsku, bo ElevenLabs najlepiej rozumie angielski.
@@ -201,6 +201,33 @@ Wspólny kontekst: montaż czołgu w hali fabrycznej. Każdy prompt ma `factory 
 | `ed_rivet` | 1,0 s | `A pneumatic rivet gun hammering a rivet into a steel plate: a rapid burst of loud metallic hammer blows at about 16 hits per second, compressed air hissing, in a factory hall. No music.` |
 | `ed_stage_done` | 0,4 s | `A short pneumatic air hiss followed by a solid satisfying metal latch clunk and click. Close, factory, no music.` |
 | `ed_undo` | 0,2 s | `A quick soft paper swoosh, like a drawing sheet slid back across a drafting table. Very short, close, dry, no music.` |
+
+## Interfejs (UI)
+
+Styl spójny z resztą gry: przedmioty z biura lat 40. (bakelit, drewniane biurko, papier, pieczątka, dzwonek,
+brzęczyk), bez cyfrowych „bipów”.
+
+Bardzo krótkie dźwięki (`ui_click` 0,08 s, `ui_slider` 0,03 s) generuj w najkrótszym czasie, jaki pozwala
+ElevenLabs (zwykle ~0,5 s), i przytnij do samego uderzenia (atak od pierwszej próbki, wyciszenie ~5 ms).
+Głośność UI: −20 LUFS (short-term), szczyt −1,5 dBFS.
+
+| plik | czas docelowy | prompt |
+|---|---|---|
+| `ui_click_1` | 0,08 s | `A single click of an old bakelite toggle switch: a short, crisp, dry mechanical snap with a tiny spring sound. Very short, close, no reverb, no music.` |
+| `ui_click_2` | 0,08 s | `A single press of a 1940s bakelite push button: short dry plastic click with a soft mechanical body. Very short, close, no reverb, no music.` |
+| `ui_tab_1` | 0,25 s | `Quickly flipping a single cardboard index card tab forward in a wooden file box: a short paper flick ending with a soft wooden tap. Close, dry, no music.` |
+| `ui_tab_2` | 0,25 s | `Flipping a single cardboard file tab backward: a short paper flick, slightly lower in tone, ending with a soft wooden tap. Close, dry, no music.` |
+| `ui_error` | 0,35 s | `Two quick dull knocks of a knuckle on a wooden desk, the second slightly lower and quieter. Close, dry, no music, no voices.` |
+| `ui_confirm_1` | 0,4 s | `A rubber stamp pressed onto paper on a wooden desk: one firm, short, satisfying thump. Close, dry, no music.` |
+| `ui_confirm_2` | 0,4 s | `A heavy rubber stamp pressed hard onto a document: deeper, more solid thump on a wooden desk. Close, dry, no music.` |
+| `ui_toast` | 0,6 s | `A single small desk service bell tapped once: a clear bright ding with a natural ringing decay. Close, dry room, no music.` |
+| `ui_warning` | 0,6 s | `An old electromechanical warning buzzer sounding twice in quick succession: two short harsh low buzzes. 1940s style, dry, no music, no voices.` |
+| `ui_modal` | 0,4 s | `A sheet of paper slid quickly out of a folder with a rising whoosh, then laid down on a wooden desk with a soft tap. Close, dry, no music.` |
+| `ui_expand` | 0,2 s | `A quick short paper rustle as a folded document is opened, ending with a tiny wooden tap. Very short, close, dry, no music.` |
+| `ui_drawer` | 0,4 s | `A small wooden desk drawer sliding open smoothly with a soft wood-on-wood friction sound, stopping with a gentle wooden knock. Close, dry, no music.` |
+| `ui_slider` | 0,03 s | `A single tiny dry metal detent tick of a 1940s radio tuning knob. Extremely short, close, no reverb, no music.` |
+
+Jeśli model dodaje dźwięki cyfrowe lub komputerowe, dopisz `analog, mechanical, no electronic beeps, no computer sounds`.
 
 ## Wskazówki, gdy wynik jest zły
 
