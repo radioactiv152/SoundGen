@@ -165,9 +165,16 @@ specyfikacji. Jeśli ma trafić do gry, trzeba dodać go także po stronie gry. 
 | plik | czas | prompt |
 |---|---|---|
 | `trial_start` | 0,6 s | `A referee's pea whistle blown once firmly outdoors: a bright shrill trilling whistle about half a second long. No music, no voices.` |
-| `trial_pass` | 0,8 s | `Two-note bell chime signalling success: a clear bright metal bell strikes a lower note then a higher note, natural ringing decay. Clean, short, no music, no voices.` |
+| `trial_pass` | 0,8 s (generuj 1,2 s, przytnij) | `A large brass hand bell struck twice outdoors on a military proving ground, first a lower tone, then a higher tone: loud, rich and full, with a strong metallic strike and a warm, long, shimmering ring. Confident and satisfying, close perspective, no other instruments, no voices.` |
 | `trial_fail` | 0,8 s | `Two-tone old electric buzzer signalling failure: a harsh low buzz, then a second lower buzz. 1940s electromechanical buzzer, dry, short, no music, no voices.` |
-| `series_done` | 0,6 s | `A sheet of paper slid quickly off a clipboard with a soft whoosh, followed by one small bright desk bell ding. Close, dry, no music.` |
+| `series_done` | 0,6 s (generuj 1,0 s, przytnij) | `A test report sheet is ripped off a clipboard with one quick, crisp paper tear and the clipboard clip snaps back with a sharp metal click, then a desk service bell is struck once firmly: a loud, clear, full brass ding with a warm ring. Close, dry office, one event, no whoosh effects, no music, no voices.` |
+
+Warianty dla poligonu, gdy główny prompt brzmi słabo (prompt influence 0,7–0,8):
+- `trial_pass`, dzwon okrętowy: `Two strong strikes on a big brass ship's bell, the second one slightly higher: powerful bright clang, deep resonant body, long natural ring. Close, outdoors, no other instruments, no voices.`
+- `trial_pass`, sygnał z epoki: `A 1940s brass signal bell rung twice by hand, rising in pitch: punchy metallic ding-dong with a full, warm ringing tail, clear and triumphant. Close, no other instruments, no voices.`
+- `series_done`, sam dzwonek z klipsem: `A clipboard clip snaps shut with a sharp metal click, immediately followed by one firm strike on a brass desk service bell: loud, bright, full ding with a warm ring. Close, dry, no music.`
+- `series_done`, z pieczątką zamiast papieru: `A rubber stamp thumps firmly onto a report on a wooden desk, then a brass desk bell is struck once: bright, full, ringing ding. Close, dry office, no music.`
+- dzwonek dalej za cienki: dopisz `heavy, loud, rich resonance, not a small bell, not a doorbell, not a notification sound`.
 
 ## Firma
 
