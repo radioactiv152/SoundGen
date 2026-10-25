@@ -1,4 +1,4 @@
-# Prompty ElevenLabs (Sound Effects): wystrzały, trafienia, podwozie i teren, ambienty, obsługa broni, wojna i meldunki
+# Prompty ElevenLabs (Sound Effects): wszystkie grupy poza pętlami silników i interfejsem
 
 Dźwięki, z którymi proceduralny generator ma najwięcej problemów: brzmią syntetycznie, mimo kolejnych poprawek.
 Do podmiany na nagrania lub generację. Prompty są po angielsku, bo ElevenLabs najlepiej rozumie angielski.
@@ -139,6 +139,68 @@ robi z nich hałas, lepiej wygenerować je w **ElevenLabs Music** albo nagrać.
 | `hangar_arrive` | 2,5 s | `A WWII tank drives slowly into a large hangar and stops: steel tracks clanking on concrete slowing down, a heavy final clunk as it halts, then the engine idles with a low rumble, echoing in the big hall. No music, no voices.` |
 
 `amb_battle` (z grupy „Wojna i meldunki”) jest wyżej, w sekcji „Ambienty”.
+
+## Silniki: zdarzenia
+
+Pętle silników (`eng_*_idle/mid/high`) zostają z generatora. Tu są tylko zdarzenia jednorazowe.
+
+| plik | czas | prompt |
+|---|---|---|
+| `eng_start` | 3,2 s | `A big WWII tank petrol V8 engine starting from cold, close outdoor perspective: a solenoid clack, the electric starter motor whines and cranks the engine slowly with rhythmic compression strokes, the engine catches with a few uneven coughs, revs up briefly, then settles into a rough, burbling idle. No music, no voices.` |
+| `eng_stall` | 1,8 s | `A big WWII tank engine stalls: the idle stumbles and misfires, revs drop quickly with uneven chugging, a last couple of heavy compression thumps, then silence with a slight metallic clunk as the engine rocks on its mounts. Close outdoor perspective, no music.` |
+| `eng_stop` (nowy, brak w generatorze) | 2,0 s | `A big WWII tank engine is switched off normally from a steady idle: the idle continues for a moment, then the ignition is cut and the engine winds down smoothly with a few slowing chugs and a soft final shudder, cooling metal ticking afterwards. Close outdoor perspective, no music.` |
+| `gear_shift` | 0,5 s | `Heavy WWII tank transmission gear change: a short grinding of gears meshing, a solid metallic clunk as the gear engages, a jolt through the drivetrain. Close, from inside the hull, dry, no engine revving, no music.` |
+| `eng_backfire` | 0,4 s | `Single loud backfire from the exhaust of a big petrol tank engine: a sharp explosive pop with a short flame burst, ringing exhaust pipe, followed by two or three small crackles. Close outdoor perspective, no music.` |
+
+`eng_stop` (zwykłe zgaszenie silnika, w odróżnieniu od `eng_stall`, czyli zgaśnięcia) nie istnieje dziś w
+specyfikacji. Jeśli ma trafić do gry, trzeba dodać go także po stronie gry. Mogę go też dorobić w generatorze.
+
+## Poligon i próby
+
+| plik | czas | prompt |
+|---|---|---|
+| `trial_start` | 0,6 s | `A referee's pea whistle blown once firmly outdoors: a bright shrill trilling whistle about half a second long. No music, no voices.` |
+| `trial_pass` | 0,8 s | `Two-note bell chime signalling success: a clear bright metal bell strikes a lower note then a higher note, natural ringing decay. Clean, short, no music, no voices.` |
+| `trial_fail` | 0,8 s | `Two-tone old electric buzzer signalling failure: a harsh low buzz, then a second lower buzz. 1940s electromechanical buzzer, dry, short, no music, no voices.` |
+| `series_done` | 0,6 s | `A sheet of paper slid quickly off a clipboard with a soft whoosh, followed by one small bright desk bell ding. Close, dry, no music.` |
+
+## Firma
+
+| plik | czas | prompt |
+|---|---|---|
+| `month_next` | 0,8 s | `Tearing a page off a 1940s paper wall calendar: a quick crisp paper rip, followed by a single warm mechanical desk bell chime. Close, dry office, no music.` |
+| `money_in` | 0,7 s | `An old mechanical cash register: a bright bell ring as the drawer opens, and a few metal coins dropping and clinking onto a wooden counter. Close, dry, no music, no voices.` |
+| `tender_won` | 2,0 s | `Short triumphant victory fanfare: bright brass trumpets play a rising arpeggio ending on a long high note, with timpani hits and a cymbal crash at the end. 1940s military band style, no voices.` |
+| `tender_lost` | 1,5 s | `Short disappointed sting: muted brass trombones play four slowly descending notes, the last one sagging flat. Sad, comic, 1940s style, no voices.` |
+| `research_done` | 1,2 s | `An old mechanical typewriter typing a short line in quick bursts, then a single clear desk bell ding. Close, dry office, no music, no voices.` |
+| `research_start` | 0,5 s | `Feeding a sheet of paper into an old typewriter: the platen knob ratchets with several small clicks while the paper slides in with a soft rustle. Close, dry, no music.` |
+| `bid_submit` | 0,6 s | `A rubber stamp pressed hard onto a document on a wooden desk, followed by the paper being slid away across the desk. Close, dry office, no music.` |
+| `newspaper` | 1,0 s | `A 1940s newspaper being unfolded with two crisp paper rustles, then slapped down onto a wooden desk. Close, dry, no music, no voices.` |
+| `medal` | 1,5 s | `Short military award sting: a crisp snare drum roll, then a bright metal medal chime ringing out with a soft cymbal. Ceremonial, 1940s military style, no voices.` |
+| `factory_up` | 2,5 s | `A 1940s factory starting up: a steam whistle blows once, then heavy machinery starts and gains speed, rhythmic thumping of a mechanical press getting faster, the deep rumble of the hall growing. No music, no voices.` |
+| `delivery_done` | 2,5 s | `A 1940s steam freight train leaving a factory siding with a delivery: a short whistle, slow heavy steam chuffs speeding up, wagon couplings clanking, rolling away into the distance. No music, no voices.` |
+| `deadline` | 1,2 s | `An old mechanical wall clock ticking four times, tick-tock with a wooden case resonance, the last tick slightly louder. Close, dry, no music.` |
+| `order_cancel` | 0,7 s | `A sheet of paper being torn in half quickly and crumpled. Close, dry office, no music, no voices.` |
+| `bankrupt` | 2,5 s | `A heavy iron factory gate slamming shut in an empty industrial hall: a deep booming metallic clang with a long hollow echo, chains rattling down, debris settling. Gloomy, no music, no voices.` |
+
+## Kreator (warsztat i biuro konstrukcyjne)
+
+Wspólny kontekst: montaż czołgu w hali fabrycznej. Każdy prompt ma `factory hall` i `no machine-gun, no engine`,
+żeby model nie dodawał walki ani silnika.
+
+| plik | czas | prompt |
+|---|---|---|
+| `ed_place` | 0,5 s | `A heavy steel tank part is set down onto a steel frame in a factory hall: a solid dull metal clunk with a short damped ring, then one or two bolts being tightened with small metal clicks. Close, short, no engine, no music.` |
+| `ed_remove` | 0,5 s | `Removing a steel part in a factory workshop: a ratchet wrench clicks four times, the part slides off with a short metal scrape, then is set aside with a light clunk. Close, dry, no engine, no music.` |
+| `ed_swap` | 0,8 s | `Swapping a steel component in a workshop: a quick ratchet and metal scrape as one part is removed, then another heavy steel part is set into place with a solid clunk. Close, factory hall, no engine, no music.` |
+| `ed_armor` | 0,8 s | `A thick steel armor plate is lowered onto a tank hull in a factory hall: a short scrape of the edge, then a massive heavy low steel thud with a brief damped ring as it settles. Close, no engine, no music.` |
+| `ed_turret` | 1,2 s | `A heavy tank turret is lowered by a crane onto the turret ring in a factory hall: a grinding of the ring, a deep heavy metallic clunk as it seats, then the loose crane chain rattles. No engine, no music.` |
+| `ed_hull` | 1,5 s | `A massive tank hull is set down by an overhead crane onto a factory floor: a huge deep metallic thud shaking the floor, echoing in a large hall, then the crane chain slackens and rattles. No engine, no music.` |
+| `ed_autofill` | 1,8 s | `Several heavy steel parts are placed onto a tank one after another in quick succession in a factory hall: five solid metal clunks of different sizes in a steady rhythm, with small bolt clicks. Close, no engine, no music.` |
+| `ed_weld` | 1,2 s | `Electric arc welding on thick steel in a factory: the arc strikes and sizzles with a steady frying crackle and hiss, then stops. Close, no music, no voices.` |
+| `ed_rivet` | 1,0 s | `A pneumatic rivet gun hammering a rivet into a steel plate: a rapid burst of loud metallic hammer blows at about 16 hits per second, compressed air hissing, in a factory hall. No music.` |
+| `ed_stage_done` | 0,4 s | `A short pneumatic air hiss followed by a solid satisfying metal latch clunk and click. Close, factory, no music.` |
+| `ed_undo` | 0,2 s | `A quick soft paper swoosh, like a drawing sheet slid back across a drafting table. Very short, close, dry, no music.` |
 
 ## Wskazówki, gdy wynik jest zły
 
