@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
 """Przycina nagrania odpalania i gaszenia silnika (np. z ElevenLabs) tak, żeby pasowały do pętli jałowego z generatora.
 
-  python3 tools/fit_engine_events.py <katalog_wejściowy> <katalog_wyjściowy> <petrol_idle.wav> <diesel_idle.wav>
+  node tools/render.js wav <pętle> v4 eng_petrol_idle eng_diesel_idle eng_small_idle eng_radial_idle eng_ww1_idle \
+       eng_v8_petrol_idle eng_v8_diesel_idle eng_v12_petrol_idle eng_v12_diesel_idle
+  python3 tools/fit_engine_events.py <katalog_wejściowy> <katalog_wyjściowy> <pętle>
 
 Dla każdego pliku (wav/mp3/ogg):
   1. mono 44,1 kHz, usunięcie składowej stałej i ciszy na początku,
   2. rozpoznanie: odpalanie (głośny początek, potem równy jałowy) albo gaszenie (jałowy, potem spadek),
-  3. przypisanie do pętli benzynowej albo dieslowskiej (bliższa barwa jałowego),
+  3. przypisanie do konkretnej pętli: paliwo z nazwy pliku, tempo zapłonów i barwa jałowego,
   4. odpalanie: od początku do ~1 s po ustabilizowaniu się jałowego + wyciszenie 0,35 s (przejście w pętlę);
      gaszenie: od 0,7 s przed gaśnięciem (wejście 0,25 s, przejście z pętli) do zgaśnięcia,
   5. korekcja barwy jałowego do pętli (krzywa 1/3 oktawy, wygładzona, maks. ±6 dB, filtr liniowofazowy),
@@ -60,6 +62,16 @@ def band_spec(x):
     return np.array([10 * np.log10(X[(f >= b / 2 ** (1 / 6)) & (f < b * 2 ** (1 / 6))].mean() + 1e-20) for b in BANDS])
 
 
+def firing_hz(x):
+    """tempo zapłonów na jałowym: najsilniejszy rytm obwiedni 20-75 Hz; gdy rytm cyklu (10-20 Hz) dominuje - jego podwojenie"""
+    from scipy.signal import sosfiltfilt
+    e = np.abs(sosfiltfilt(butter(4, [60, 2500], 'bp', fs=SR, output='sos'), x)); e = sosfiltfilt(butter(4, 200, 'lp', fs=SR, output='sos'), e); e -= e.mean()
+    n = 1 << (int(np.ceil(np.log2(len(e)))) + 1); E = np.abs(np.fft.rfft(e * np.hanning(len(e)), n)); f = np.fft.rfftfreq(n, 1 / SR)
+    lo = (f >= 10) & (f < 20); hi = (f >= 20) & (f < 75)
+    fl, El = f[lo][np.argmax(E[lo])], E[lo].max(); fh, Eh = f[hi][np.argmax(E[hi])], E[hi].max()
+    return 2 * fl if (El > Eh and abs(2 * fl - fh) / fh > 0.12 and 2 * fl < 75) else fh
+
+
 def eq_match(x, src_seg, ref, maxdb=4.0):
     d = band_spec(ref) - band_spec(src_seg); d -= np.median(d)           # tylko kształt; poziom osobno
     d = np.convolve(np.pad(d, 2, mode='edge'), np.ones(5) / 5, 'valid')   # wygładzenie
@@ -96,9 +108,18 @@ def fade(n, a, b):
     return e
 
 
-def main(src, dst, ref_p, ref_d):
+PETROL = ('petrol', 'v8_petrol', 'v12_petrol', 'small', 'radial', 'ww1')
+DIESEL = ('diesel', 'v8_diesel', 'v12_diesel')
+
+
+def main(src, dst, refdir):
+    """refdir: katalog z pętlami jałowego z generatora, np. eng_v8_petrol_idle_1.v4.wav (node tools/render.js wav <dir> v4 eng_*_idle)"""
     os.makedirs(dst, exist_ok=True)
-    refs = {'benzyna': load(ref_p), 'diesel': load(ref_d)}
+    refs = {}
+    for pth in sorted(glob.glob(os.path.join(refdir, 'eng_*_idle*.wav'))):
+        k = os.path.basename(pth).split('_idle')[0][4:]
+        if k != 'turbine': refs[k] = load(pth)
+    ref_fire = {k: firing_hz(v) for k, v in refs.items()}
     ref_lufs = {k: lufs(v) for k, v in refs.items()}
     files = sorted(f for f in glob.glob(os.path.join(src, '*')) if f.lower().endswith(('.wav', '.mp3', '.ogg', '.flac')))
     report, cnt = [], {}
@@ -144,9 +165,13 @@ def main(src, dst, ref_p, ref_d):
         sp = band_spec(idle); sp -= np.median(sp)
         dist = {k: np.mean(np.abs((band_spec(v) - np.median(band_spec(v))) - sp)) for k, v in refs.items()}
         low = os.path.basename(f).lower()
-        if 'dies' in low: typ = 'diesel'                                          # nazwa pliku z ElevenLabs = początek promptu
-        elif 'petr' in low or 'v8' in low or 'benz' in low: typ = 'benzyna'
-        else: typ = min(dist, key=dist.get)                                       # brak wskazówki: bliższa barwa
+        if 'dies' in low: cand = DIESEL                                           # nazwa pliku z ElevenLabs = początek promptu
+        elif 'petr' in low or 'benz' in low: cand = PETROL
+        elif 'v8' in low: cand = ('petrol', 'v8_petrol', 'v8_diesel')
+        else: cand = tuple(refs)
+        fh = firing_hz(idle)
+        score = {k: abs(np.log2(fh / ref_fire[k])) * 12 + 0.5 * dist[k] for k in cand if k in refs}   # tempo zapłonów + barwa
+        typ = min(score, key=score.get)
         y, curve = eq_match(seg, idle, refs[typ])
         # głośność: jałowy jak w pętli
         idle_eq = y[ia:ib]
@@ -157,7 +182,7 @@ def main(src, dst, ref_p, ref_d):
         name = 'eng_%s_%s_%d' % (kind, typ, cnt[key])
         save(os.path.join(dst, name + '.wav'), y)
         subprocess.run(['ffmpeg', '-loglevel', 'error', '-y', '-i', os.path.join(dst, name + '.wav'), '-c:a', 'libvorbis', '-q:a', '6', os.path.join(dst, name + '.ogg')], check=True)
-        report.append({'plik': name, 'zrodlo': os.path.basename(f), 'rodzaj': kind, 'petla': typ, 'dlugosc_s': round(len(y) / SR, 2),
+        report.append({'plik': name, 'zrodlo': os.path.basename(f), 'rodzaj': kind, 'petla': 'eng_' + typ + '_idle', 'tempo_zaplonow_hz': round(float(fh), 1), 'tempo_petli_hz': round(float(ref_fire[typ]), 1), 'dlugosc_s': round(len(y) / SR, 2),
                        'jalowy_od_s': round(settle * w, 2) if kind == 'start' else 0.0, 'gaszenie_od_s': round(0.7, 2) if kind == 'stop' else None,
                        'lufs_jalowego': round(lufs(idle_eq * gain), 1), 'lufs_petli': round(ref_lufs[typ], 1),
                        'szczyt_db': round(20 * np.log10(np.abs(y).max() + 1e-12), 1), 'limiter_db': round(max(0.0, 20 * np.log10(pre / 10 ** (-1.5 / 20))), 1), 'korekcja_db_min_max': [round(float(curve.min()), 1), round(float(curve.max()), 1)]})
@@ -166,4 +191,4 @@ def main(src, dst, ref_p, ref_d):
 
 
 if __name__ == '__main__':
-    main(*sys.argv[1:5])
+    main(*sys.argv[1:4])
