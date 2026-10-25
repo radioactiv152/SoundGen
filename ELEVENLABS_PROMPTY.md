@@ -183,7 +183,7 @@ Warianty dla poligonu, gdy główny prompt brzmi słabo (prompt influence 0,7–
 | `month_next` | 0,8 s | `Tearing a page off a 1940s paper wall calendar: a quick crisp paper rip, followed by a single warm mechanical desk bell chime. Close, dry office, no music.` |
 | `money_in` | 0,7 s | `An old mechanical cash register: a bright bell ring as the drawer opens, and a few metal coins dropping and clinking onto a wooden counter. Close, dry, no music, no voices.` |
 | `tender_won` | 2,0 s | `Short triumphant victory fanfare: bright brass trumpets play a rising arpeggio ending on a long high note, with timpani hits and a cymbal crash at the end. 1940s military band style, no voices.` |
-| `tender_lost` | 1,5 s | `Short disappointed sting: muted brass trombones play four slowly descending notes, the last one sagging flat. Sad, comic, 1940s style, no voices.` |
+| `tender_lost` | 1,5 s | `Short serious, restrained orchestral sting for a lost government contract: low French horns and a soft tuba play a dark minor chord that swells briefly and fades, with one muffled timpani hit. Somber and dignified, 1940s film score style, not comic, not cartoonish, no trombone slide, no voices.` (warianty niżej) |
 | `research_done` | 1,2 s | `An old mechanical typewriter typing a short line in quick bursts, then a single clear desk bell ding. Close, dry office, no music, no voices.` |
 | `research_start` | 0,5 s | `Feeding a sheet of paper into an old typewriter: the platen knob ratchets with several small clicks while the paper slides in with a soft rustle. Close, dry, no music.` |
 | `bid_submit` | 0,6 s | `A rubber stamp pressed hard onto a document on a wooden desk, followed by the paper being slid away across the desk. Close, dry office, no music.` |
@@ -194,6 +194,11 @@ Warianty dla poligonu, gdy główny prompt brzmi słabo (prompt influence 0,7–
 | `deadline` | 1,2 s | `An old mechanical wall clock ticking four times, tick-tock with a wooden case resonance, the last tick slightly louder. Close, dry, no music.` |
 | `order_cancel` | 0,7 s | `A sheet of paper being torn in half quickly and crumpled. Close, dry office, no music, no voices.` |
 | `bankrupt` | 2,5 s | `A heavy iron factory gate slamming shut in an empty industrial hall: a deep booming metallic clang with a long hollow echo, chains rattling down, debris settling. Gloomy, no music, no voices.` |
+
+Warianty `tender_lost`, gdy wychodzi zbyt kreskówkowo:
+- bardziej filmowy: `A brief, dark, serious brass chord in a minor key played softly by horns and low strings, slowly fading out. Disappointment and gravity, 1940s war film score, not comic, no slide, no voices.`
+- bez muzyki, jako zdarzenie w biurze: `An official rejection: a heavy rubber stamp thumps onto a document on a wooden desk, then the paper is slid away and dropped into a metal tray. Close, dry, quiet office, no music, no voices.`
+- przy kolejnych kreskówkowych wynikach dopisz: `not funny, no wah-wah, no sad trombone, no pitch bend`.
 
 ## Kreator (warsztat i biuro konstrukcyjne)
 
