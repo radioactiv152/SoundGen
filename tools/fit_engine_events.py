@@ -78,7 +78,7 @@ def limit(x, thr):
     return x * gs
 
 
-def compress(x, thr_db=-10.0, ratio=3.0, att=0.004, rel=0.18):
+def compress(x, thr_db=-7.0, ratio=2.0, att=0.004, rel=0.18):
     """łagodny kompresor (śledzenie szczytu: szybki atak, wolne puszczanie) - przegazowanie zostaje głośne, ale nie "zduszone" """
     thr = 10 ** (thr_db / 20); a1 = np.exp(-1 / (att * SR)); r1 = np.exp(-1 / (rel * SR))
     env = np.empty(len(x)); e = 0.0; ax = np.abs(x)
@@ -119,7 +119,15 @@ def main(src, dst, ref_p, ref_d):
             t_end = min(len(x) / SR, (settle * w) + 1.0 + 0.35)
             seg = x[:int(t_end * SR)]
             ia, ib = int(settle * w * SR), min(len(seg), int((settle * w + 1.0) * SR))
-            env = fade(len(seg), 0.003, 0.35)
+            # rozrusznik ciszej niż praca silnika: kręcenie do chwili zaskoczenia ~8 dB pod jałowym, potem wyraźny skok
+            lo_i = int(0.3 / w); imax2 = lo_i + int(np.argmax(e[lo_i:max(lo_i + 1, settle)])) if settle > lo_i else imax
+            tc = max(0.25, imax2 * w - 0.12)
+            crank_db = 10 * np.log10(np.mean(seg[:int(tc * SR)] ** 2) + 1e-12)
+            gdb = min(0.0, (idle_lvl - 8) - crank_db)
+            t = np.arange(len(seg)) / SR
+            cg = 10 ** (np.interp(t, [0, max(0.0, tc - 0.12), tc, t[-1] + 1], [gdb, gdb, 0, 0]) / 20)
+            seg = seg * cg
+            env = fade(len(seg), 0.005, 0.35)
         else:
             stop = None
             for i in range(int(0.5 / w), len(e) - int(0.2 / w)):
