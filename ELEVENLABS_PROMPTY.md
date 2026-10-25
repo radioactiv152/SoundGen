@@ -221,7 +221,7 @@ Wspólny kontekst: montaż czołgu w hali fabrycznej. Każdy prompt ma `factory 
 | `ed_remove` | 0,5 s | `Removing a steel part in a factory workshop: a ratchet wrench clicks four times, the part slides off with a short metal scrape, then is set aside with a light clunk. Close, dry, no engine, no music.` |
 | `ed_swap` | 0,8 s | `Swapping a steel component in a workshop: a quick ratchet and metal scrape as one part is removed, then another heavy steel part is set into place with a solid clunk. Close, factory hall, no engine, no music.` |
 | `ed_armor` | 0,8 s | `A thick steel armor plate is lowered onto a tank hull in a factory hall: a short scrape of the edge, then a massive heavy low steel thud with a brief damped ring as it settles. Close, no engine, no music.` |
-| `ed_turret` | 1,2 s | `A heavy tank turret is lowered by a crane onto the turret ring in a factory hall: a grinding of the ring, a deep heavy metallic clunk as it seats, then the loose crane chain rattles. No engine, no music.` |
+| `ed_turret` | 0,8 s | `A heavy tank turret drops the last few centimetres onto its steel turret ring: a brief metallic scrape, then one deep, heavy, solid clunk as it seats, and the sound stops right away. Short and tight, dry, close, very little echo, no chains, no engine, no music.` (warianty niżej) |
 | `ed_hull` | 1,5 s | `A massive tank hull is set down by an overhead crane onto a factory floor: a huge deep metallic thud shaking the floor, echoing in a large hall, then the crane chain slackens and rattles. No engine, no music.` |
 | `ed_autofill` | 1,8 s | `Several heavy steel parts are placed onto a tank one after another in quick succession in a factory hall: five solid metal clunks of different sizes in a steady rhythm, with small bolt clicks. Close, no engine, no music.` |
 | `ed_weld` | 1,2 s | `Electric arc welding on thick steel in a factory: the arc strikes and sizzles with a steady frying crackle and hiss, then stops. Close, no music, no voices.` |
@@ -255,6 +255,11 @@ Głośność UI: −20 LUFS (short-term), szczyt −1,5 dBFS.
 | `ui_slider` | 0,03 s | `A single tiny dry metal detent tick of a 1940s radio tuning knob. Extremely short, close, no reverb, no music.` |
 
 Jeśli model dodaje dźwięki cyfrowe lub komputerowe, dopisz `analog, mechanical, no electronic beeps, no computer sounds`.
+
+Warianty `ed_turret` (krótki koniec):
+- sam stuk: `One deep, heavy, dry metallic clunk of a large steel turret seating onto a steel ring, ending immediately. Very short, close, no echo, no rattle, no music.`
+- z krótkim zgrzytem: `A quick grinding scrape of steel on steel lasting a fraction of a second, then a single heavy solid clunk that stops abruptly. Dry, close, no reverb tail, no chains, no music.`
+- jeśli dalej się ciągnie: ustaw Duration na 0,6–0,8 s, dopisz `stops abruptly, no reverb tail, no ringing` i przytnij koniec z wyciszeniem ~30 ms.
 
 ## Wskazówki, gdy wynik jest zły
 
