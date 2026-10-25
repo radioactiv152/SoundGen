@@ -223,7 +223,7 @@ Wspólny kontekst: montaż czołgu w hali fabrycznej. Każdy prompt ma `factory 
 | `ed_armor` | 0,8 s | `A thick steel armor plate is lowered onto a tank hull in a factory hall: a short scrape of the edge, then a massive heavy low steel thud with a brief damped ring as it settles. Close, no engine, no music.` |
 | `ed_turret` | 0,8 s | `A heavy tank turret drops the last few centimetres onto its steel turret ring: a brief metallic scrape, then one deep, heavy, solid clunk as it seats, and the sound stops right away. Short and tight, dry, close, very little echo, no chains, no engine, no music.` (warianty niżej) |
 | `ed_hull` | 1,5 s | `A massive tank hull is set down by an overhead crane onto a factory floor: a huge deep metallic thud shaking the floor, echoing in a large hall, then the crane chain slackens and rattles. No engine, no music.` |
-| `ed_autofill` | 1,8 s | `Several heavy steel parts are placed onto a tank one after another in quick succession in a factory hall: five solid metal clunks of different sizes in a steady rhythm, with small bolt clicks. Close, no engine, no music.` |
+| `ed_autofill` | 1,8 s | `Rapid sequence of five separate heavy metal clunks, about three per second: clunk, clunk, clunk, clunk, clunk, each one a steel part dropped into place on a steel frame, slightly different sizes, evenly spaced over one and a half seconds, with a tiny bolt click after each. Close, dry factory, no engine, no music.` (warianty i składanie niżej) |
 | `ed_weld` | 1,2 s | `Electric arc welding on thick steel in a factory: the arc strikes and sizzles with a steady frying crackle and hiss, then stops. Close, no music, no voices.` |
 | `ed_rivet` | 1,0 s | `A pneumatic rivet gun hammering a rivet into a steel plate: a rapid burst of loud metallic hammer blows at about 16 hits per second, compressed air hissing, in a factory hall. No music.` |
 | `ed_stage_done` | 0,4 s | `A short pneumatic air hiss followed by a solid satisfying metal latch clunk and click. Close, factory, no music.` |
@@ -260,6 +260,13 @@ Warianty `ed_turret` (krótki koniec):
 - sam stuk: `One deep, heavy, dry metallic clunk of a large steel turret seating onto a steel ring, ending immediately. Very short, close, no echo, no rattle, no music.`
 - z krótkim zgrzytem: `A quick grinding scrape of steel on steel lasting a fraction of a second, then a single heavy solid clunk that stops abruptly. Dry, close, no reverb tail, no chains, no music.`
 - jeśli dalej się ciągnie: ustaw Duration na 0,6–0,8 s, dopisz `stops abruptly, no reverb tail, no ringing` i przytnij koniec z wyciszeniem ~30 ms.
+
+Warianty `ed_autofill` (modele słabo liczą, więc trzeba wymusić rytm):
+- jak seria uderzeń: `A quick series of heavy metal impacts in a steady rhythm, like a worker rapidly setting down five heavy steel blocks one after another on a steel table, three impacts per second, each clearly separate. Close, dry, no music.`
+- jak linia montażowa: `An automatic assembly line drops five heavy steel parts into place in quick even succession: thunk, thunk, thunk, thunk, thunk within one and a half seconds, metallic and solid. Close, dry factory, no engine, no music.`
+- **najpewniejsze, składanie**: wygeneruj 3–5 pojedynczych stuknięć promptem `ed_place` i ułóż je w edytorze w chwilach
+  **0; 0,31; 0,62; 0,95; 1,28 s** (tak jak w generatorze), z lekko różnymi głośnościami (80–100%) i ewentualnie
+  wysokością (±10–20%). Rytm i liczba będą wtedy zawsze dobre.
 
 ## Wskazówki, gdy wynik jest zły
 
