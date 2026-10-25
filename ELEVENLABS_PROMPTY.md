@@ -193,7 +193,7 @@ Warianty dla poligonu, gdy główny prompt brzmi słabo (prompt influence 0,7–
 | `delivery_done` | 2,5 s | `A finished tank is secured on a railway flatcar for delivery: heavy steel chains are pulled tight with a few loud ratchet clicks, then a wooden freight wagon door slides shut with a rumbling roll and a heavy latch clank, and the couplings bang one after another down the line as the train takes up the slack. Outdoors, rail yard, no whistle, no steam, no music, no voices.` (warianty niżej) |
 | `deadline` | 1,2 s | `An old mechanical wall clock ticking four times, tick-tock with a wooden case resonance, the last tick slightly louder. Close, dry, no music.` |
 | `order_cancel` | 0,7 s | `A sheet of paper being torn in half quickly and crumpled. Close, dry office, no music, no voices.` |
-| `bankrupt` | 2,5 s | `A heavy iron factory gate slamming shut in an empty industrial hall: a deep booming metallic clang with a long hollow echo, chains rattling down, debris settling. Gloomy, no music, no voices.` |
+| `bankrupt` | 3,0 s | `A 1940s factory shuts down for good: the machinery in a large hall winds down and falls silent, a big electrical knife switch is thrown with a heavy clunk, then a massive iron gate slams shut with a deep booming clang that echoes through the empty hall, and a chain and padlock rattle into place. Gloomy, final, no music, no voices.` (warianty niżej) |
 
 Warianty `tender_lost`, gdy wychodzi zbyt kreskówkowo:
 - bardziej filmowy: `A brief, dark, serious brass chord in a minor key played softly by horns and low strings, slowly fading out. Disappointment and gravity, 1940s war film score, not comic, no slide, no voices.`
@@ -204,6 +204,11 @@ Warianty `delivery_done` (celowo bez gwizdka i bez przyspieszającego rytmu, że
 - tylko wagon i sprzęgi: `A heavy wooden freight wagon door rolls shut and is latched with a loud metal clank, followed by a chain reaction of couplings banging along a line of wagons as a freight train jerks into motion. Outdoors, rail yard, no whistle, no steam, no music.`
 - ciężarówka z epoki: `A 1940s army truck tailgate is slammed shut and the canvas cover flaps, chains rattle, then the truck pulls away slowly on gravel and fades into the distance. Outdoors, no music, no voices.`
 - krótko i podpisowo: `Delivery papers are signed with a pen scratch, a rubber stamp thumps onto them, then a heavy wagon door slams shut with a metal latch. Close, dry, no music.`
+
+Warianty `bankrupt`:
+- krótszy, sama brama: `A massive iron factory gate is pushed shut and slams with a deep, heavy, booming metallic clang, a long dark echo in an empty brick hall, then a heavy chain and padlock rattle and lock. Gloomy, final, no music, no voices.`
+- z zamykanym sejfem (finanse): `A heavy steel office safe door swings shut with a deep solid thud, the locking bolts slide home with a metallic clunk, the dial spins with a few clicks, then silence in an empty office. Close, dry, no music.`
+- jeśli brzmi jak horror, dopisz: `realistic, not a horror movie, no drones, no whooshes`.
 
 ## Kreator (warsztat i biuro konstrukcyjne)
 
