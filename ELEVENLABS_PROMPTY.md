@@ -148,9 +148,14 @@ Pętle silników (`eng_*_idle/mid/high`) zostają z generatora. Tu są tylko zda
 |---|---|---|
 | `eng_start` | 3,2 s | `A big WWII tank petrol V8 engine starting from cold, close outdoor perspective: a solenoid clack, the electric starter motor whines and cranks the engine slowly with rhythmic compression strokes, the engine catches with a few uneven coughs, revs up briefly, then settles into a rough, burbling idle. No music, no voices.` |
 | `eng_stall` | 1,8 s | `A big WWII tank engine stalls: the idle stumbles and misfires, revs drop quickly with uneven chugging, a last couple of heavy compression thumps, then silence with a slight metallic clunk as the engine rocks on its mounts. Close outdoor perspective, no music.` |
-| `eng_stop` (nowy, brak w generatorze) | 2,0 s | `A big WWII tank engine is switched off normally from a steady idle: the idle continues for a moment, then the ignition is cut and the engine winds down smoothly with a few slowing chugs and a soft final shudder, cooling metal ticking afterwards. Close outdoor perspective, no music.` |
+| `eng_stop` (nowy, brak w generatorze) | 3,5 s | `Engine shutdown of a heavy WWII tank: a deep, lumpy V8 idle rumbling steadily for one second, then the engine is turned off and the rumble dies away over about one second in a few slow, heavy, uneven chugs, ending with one soft clunk. Then silence. Close, outdoors, no starting, no revving, no music.` (warianty niżej) |
 | `gear_shift` | 0,5 s | `Heavy WWII tank transmission gear change: a short grinding of gears meshing, a solid metallic clunk as the gear engages, a jolt through the drivetrain. Close, from inside the hull, dry, no engine revving, no music.` |
 | `eng_backfire` | 0,4 s | `Single loud backfire from the exhaust of a big petrol tank engine: a sharp explosive pop with a short flame burst, ringing exhaust pipe, followed by two or three small crackles. Close outdoor perspective, no music.` |
+
+Warianty `eng_stop`, gdy główny prompt nie działa (czas 3–4 s, prompt influence ~0,7):
+- prostszy: `A large diesel tank engine idling, then switched off: the rumble slows down and stops within a second with a few heavy final thumps. Close, outdoors, no music.`
+- gdy model odpala silnik zamiast go gasić: `Sound of an engine stopping, not starting: idling truck-sized engine shuts off, chugs slowing down to silence, a final mechanical clunk. No starter motor, no revving, no music.`
+- bez idle na początku (do sklejenia z pętlą `eng_*_idle`): `A heavy tank engine shutting down: three or four slowing, heavy, uneven chugs fading to silence, a soft final clunk. Short, close, outdoors, no music.`
 
 `eng_stop` (zwykłe zgaszenie silnika, w odróżnieniu od `eng_stall`, czyli zgaśnięcia) nie istnieje dziś w
 specyfikacji. Jeśli ma trafić do gry, trzeba dodać go także po stronie gry. Mogę go też dorobić w generatorze.
