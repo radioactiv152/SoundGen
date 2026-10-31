@@ -119,13 +119,14 @@ tabela zapłonów (kąt, rząd) ──► zdarzenia zapłonów (czas, cylinder, 
    │
    ├─► impuls przepływu wydechu (wydmuch 7°↑ 42°↓ + wypychanie 200°; w sekundach ∝ 1/obroty) + turbulencja wylotu
    │     → kolektor rzędu (LP 2,6 kHz + Helmholtz) → rura ćwierćfalowa (c=520 m/s, L z tabeli) → tłumik (LP, komora)
-   │     → promieniowanie (pochodna poniżej 120 Hz) → nieliniowość gorącego gazu
+   │     → promieniowanie (pochodna poniżej 45 Hz) → nieliniowość gorącego gazu
    ├─► stuk spalania: ziarno 0,9 ms → 44 mody bloku 500–4000 Hz (T60 25 ms) → LP 3,2 kHz; diesel ≫ benzyna
    ├─► tłok (diesel, jałowy), zawory (2/cyl/cykl), pompa wtryskowa, łańcuchy (WW1)
    ├─► koła zębate (ton obroty/60 × Z, FM 2,3 Hz), wentylator (szum ∝ obroty^2,5 + ton łopatek), dmuchawa Roots
    └─► wlot (szum 150–1800 Hz pulsujący z zapłonami)
-   Σ → żaluzje (LP 5 kHz, −6 dB/okt powyżej 700 Hz) → bas kadłuba (+LP 110 Hz) → odbicia (3,2 i 7,1 ms, krótki ogon 0,11 s)
-   → mastering: LUFS (naturalna: −24,8 jałowy … −16,5 pełna moc; lub wyrównana −18), szczyt −1,5 dBFS
+   + pomruk bloku i mocowań 25–120 Hz pulsujący z zapłonami
+   Σ → żaluzje (LP 5 kHz, łagodny spadek powyżej 900 Hz) → kadłub (rezonans 75–85 Hz + bas do 150 Hz) → odbicia (3,2 i 7,1 ms, krótki ogon 0,11 s)
+   → mastering: LUFS (naturalna: −19,9 jałowy … −16,8 pełna moc; lub wyrównana −18), szczyt −1,5 dBFS
 ```
 
 Pętla ma całkowitą liczbę cykli silnika (obroty dopasowane o ułamek procenta), pływanie obrotów i tony są
@@ -145,21 +146,21 @@ obciążenia = zwalnianie, 1400 pod obciążeniem = podjazd).
 
 ### 4.3 Wynik pomiarów (pętle v5, 1/1-oktawy względem maksimum)
 
-| pętla | 63 | 125 | 250 | 500 | 1 k | 2 k | 4 k | 8 k | tempo modulacji [Hz] (oczekiwane) |
+| pętla | 63 | 125 | 250 | 500 | 1 k | 2 k | 4 k | 8 k | f zapłonów [Hz] |
 |---|---|---|---|---|---|---|---|---|---|
-| HL 230 high (2800) | −27 | −21 | 0 | −10 | −13 | −25 | −33 | −42 | 280 (280) |
-| HL 230 idle (650) | 0 | −12/0 | −15 | −17 | −19 | −34 | −44 | −54 | 65 (65) |
-| W-2 high (1750) | −15 | −16 | −8 | −2 | −4 | −12 | −19 | −35 | 175 (175) |
-| W-2 idle (550) | 0 | −6 | −16 | −14 | −12 | −20 | −30 | −47 | 54 (55) |
-| GAA high (2600) | −26 | −3 | 0 | −13 | −15 | −26 | −34 | −44 | 173 (173) |
-| GM 6046 high (2100) | −19 | −9 | −2 | −5 | −6 | −17 | −26 | −41 | 140/279/420 (420) |
-| R-975 high (2400) | −17 | −12 | −7 | −5 | −6 | −17 | −24 | −34 | 180 (180) |
-| Ricardo idle (330) | 0 | −10 | −18 | −10 | −10 | −16 | −25 | −36 | 16 (16,5) |
+| HL 230 high (2800) | -5 | -9 | 0 | -10 | -11 | -15 | -31 | -49 | 280 |
+| HL 230 idle (650) | 0 | -4 | -14 | -22 | -23 | -29 | -43 | -62 | 65 |
+| W-2 high (1750) | -6 | 0 | -13 | -11 | -10 | -16 | -25 | -49 | 175 |
+| W-2 idle (550) | 0 | -2 | -12 | -14 | -11 | -16 | -27 | -49 | 55 |
+| GAA high (2600) | -1 | -3 | 0 | -5 | -7 | -13 | -27 | -45 | 173 |
+| GM 6046 high (2100) | 0 | -5 | -1 | -2 | -3 | -9 | -23 | -46 | 420 |
+| R-975 high (2400) | -6 | -6 | 0 | -8 | -9 | -14 | -27 | -44 | 180 |
+| Ricardo idle (330) | 0 | -3 | -15 | -12 | -12 | -14 | -24 | -42 | 16,5 |
 
-Kształt widma odpowiada nagraniom (maksimum 60–500 Hz, spadek 20–40 dB do 4–8 kHz), tempa modulacji zgadzają
-się z częstotliwością zapłonów każdego silnika, klekot diesli sięga 3–4 kHz jak w nagraniu z bliska, benzyniaki
+Kształt widma odpowiada nagraniom (maksimum 60–500 Hz, na jałowym pasmo 40–150 Hz równe całości, spadek 20–35 dB do
+4–8 kHz), zmierzone tempa modulacji zgadzają się z częstotliwością zapłonów każdego silnika, klekot diesli sięga 3–4 kHz jak w nagraniu z bliska, benzyniaki
 są ciemniejsze. Tiki mechaniczne są 20–35 dB pod poziomem całości (w nagraniu z bliska bywają głośniejsze –
-parametr `valve`). Współczynnik szczytu 9–14 dB (nagrania: 12–13).
+parametr `valve`). Współczynnik szczytu 10–16 dB (nagrania: 12–13), głębokość modulacji 0,65–0,85 na jałowym i 0,35–0,6 przy obrotach.
 
 ### 4.4 Czego audyt nie rozstrzyga
 
